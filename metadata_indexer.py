@@ -8,6 +8,7 @@ from sentence_transformers import SentenceTransformer, CrossEncoder
 from langchain_community.vectorstores import FAISS
 from langchain.embeddings.sentence_transformer import SentenceTransformerEmbeddings
 from rank_bm25 import BM25Okapi
+from config import EMBEDDING_MODEL, RERANKER_MODEL
 
 # Configure logging
 logging.basicConfig(
@@ -20,8 +21,8 @@ logger = logging.getLogger(__name__)
 class MetadataIndexer:
     """Handles indexing and retrieval of SL2 metadata with focus on models and JS API"""
 
-    def __init__(self, metadata_path: str, embedding_model_name: str = "all-MiniLM-L6-v2",
-                 reranker_model_name: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"):
+    def __init__(self, metadata_path: str, embedding_model_name: str = EMBEDDING_MODEL,
+                 reranker_model_name: str = RERANKER_MODEL):
         """Initialize the metadata indexer"""
         self.metadata_path = metadata_path
         self.embedding_model_name = embedding_model_name

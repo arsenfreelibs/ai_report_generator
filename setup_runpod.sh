@@ -4,6 +4,8 @@
 echo "Python version:"
 python --version
 
+pip uninstall numpy -y
+
 # Install dependencies
 echo "Installing dependencies..."
 pip install -r requirements.txt

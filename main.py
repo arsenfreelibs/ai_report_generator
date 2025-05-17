@@ -13,9 +13,7 @@ except ImportError as e:
     print("Please install the required packages using: pip install -r requirements.txt")
     sys.exit(1)
 
-# Configuration
-METADATA_PATH = os.environ.get('METADATA_PATH', './meta_with_field(with option)_50.json')
-MODEL_PATH = os.environ.get('MODEL_PATH', 'codellama/CodeLlama-13b-Instruct-hf')
+from config import METADATA_PATH, MODEL_PATH
 
 def main():
     # Print system info
