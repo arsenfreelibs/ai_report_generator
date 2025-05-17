@@ -1,4 +1,5 @@
 import re
+import json
 from typing import Dict, List
 from metadata_indexer import MetadataIndexer
 from llm_processor import LLMProcessor
@@ -473,3 +474,49 @@ CRITICAL REQUIREMENTS:
 
             except Exception as e:
                 print(f"Error generating JavaScript code: {str(e)}")
+
+    def api_generate_js_code(self, request_data: Dict) -> Dict:
+        """API endpoint to generate JavaScript code from natural language query
+        
+        Args:
+            request_data: Dictionary containing at minimum a 'query' field
+            
+        Returns:
+            Dictionary with generated code and metadata
+        """
+        try:
+            # Extract the query from request data
+            query = request_data.get('query', '')
+            if not query:
+                return {'error': 'No query provided', 'status': 'error'}
+            
+            # Optional parameters
+            max_tokens = request_data.get('max_tokens', 1024)
+            temperature = request_data.get('temperature', 0.2)
+            
+            # Generate code
+            result = self.generate_js_code(query)
+            
+            # Return formatted response
+            return {
+                'status': 'success',
+                'query': query,
+                'code': result['javascript_code'],
+                'is_valid': self.validate_js(result['javascript_code']),
+                'context': {
+                    'models_used': [
+                        {'name': model.get('name', ''), 'alias': model.get('alias', '')} 
+                        for model in result['context_used']['models']
+                    ],
+                    'api_methods_used': [
+                        {'name': api.get('name', '')} 
+                        for api in result['context_used']['api_methods']
+                    ]
+                }
+            }
+        except Exception as e:
+            return {
+                'status': 'error',
+                'error': str(e),
+                'query': request_data.get('query', '')
+            }

@@ -36,6 +36,29 @@ Follow these steps to run the application on RunPod:
    MODEL_PATH="Qwen/Qwen-7B-Chat" python main.py
    ```
 
+5. **Using the API server**
+   ```bash
+   # Start the API server
+   python api_server.py
+   
+   # By default, the server runs on port 5000
+   # You can change the port with:
+   PORT=8080 python api_server.py
+   ```
+   
+   Once the server is running, you can make requests to it:
+   ```bash
+   # Example API request
+   curl -X POST http://localhost:5000/generate \
+     -H "Content-Type: application/json" \
+     -d '{"query": "Find all active work orders from the last week"}'
+   ```
+   
+   The API returns a JSON response containing:
+   - Generated JavaScript code
+   - Validation status
+   - Context information
+
 ## Troubleshooting
 
 If you encounter errors:
@@ -53,4 +76,13 @@ If you encounter errors:
 3. **CPU-only mode**: If GPU memory is limited
    ```bash
    DEVICE="cpu" python main.py
+   ```
+
+4. **API server issues**: Check that Flask is installed and the port isn't in use
+   ```bash
+   # Install Flask if needed
+   pip install flask
+   
+   # Check if port 5000 is already in use
+   netstat -tuln | grep 5000
    ```

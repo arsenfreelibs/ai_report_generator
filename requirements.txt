@@ -11,3 +11,5 @@ optimum
 auto-gptq
 pydantic>=2.0.0
 rank_bm25
+pandas>=2.0.0
+flask>=2.0.1
