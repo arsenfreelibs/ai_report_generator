@@ -1,8 +1,17 @@
 import os
 import sys
 import json
-import torch
-from js_code_generator import JSCodeGenerator
+
+# Check for required packages before importing them
+try:
+    import numpy as np
+    import torch
+    from js_code_generator import JSCodeGenerator
+except ImportError as e:
+    missing_package = str(e).split("'")[-2]
+    print(f"Error: Required package '{missing_package}' is not available.")
+    print("Please install the required packages using: pip install -r requirements.txt")
+    sys.exit(1)
 
 # Configuration
 METADATA_PATH = os.environ.get('METADATA_PATH', './meta_with_field(with option)_50.json')
@@ -11,6 +20,7 @@ MODEL_PATH = os.environ.get('MODEL_PATH', 'codellama/CodeLlama-13b-Instruct-hf')
 def main():
     # Print system info
     print("PyTorch version:", torch.__version__)
+    print("NumPy version:", np.__version__)
     print("GPU available:", torch.cuda.is_available())
     if torch.cuda.is_available():
         print("GPU name:", torch.cuda.get_device_name(0))
@@ -37,6 +47,8 @@ def main():
         js_generator.interactive_mode()
     except Exception as e:
         print(f"Error during initialization or execution: {str(e)}")
+        import traceback
+        traceback.print_exc()  # Print full traceback for better debugging
         sys.exit(1)
 
 if __name__ == "__main__":
