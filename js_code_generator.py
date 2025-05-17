@@ -383,7 +383,8 @@ CRITICAL REQUIREMENTS:
 
         # Create JS generation prompt
         prompt = self._create_js_prompt(enhanced_query, context)
-
+        print(f"prompt: {prompt}")
+        
         # Generate response from LLM
         response_text = self.llm_processor.generate_response(prompt, max_tokens=1024, temperature=0.2)
 

@@ -37,11 +37,14 @@ class LLMProcessor:
             quantization_config=quantization_config,
             torch_dtype=torch.float16 if self.device == "cuda" else torch.float32,
             trust_remote_code=True,
+            low_cpu_mem_usage=True,
+            offload_folder="offload",
+            offload_state_dict=True if self.device == "cuda" else False,
         )
 
         return self.tokenizer, self.model
 
-    def generate_response(self, prompt: str, max_tokens: int = 1024, temperature: float = 0.2) -> str:
+    def generate_response(self, prompt: str, max_tokens: int = 512, temperature: float = 0.2) -> str:
         """Generate a response from the language model"""
         if not self.model or not self.tokenizer:
             self.initialize_model()
