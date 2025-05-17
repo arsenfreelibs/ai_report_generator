@@ -10,7 +10,7 @@ MODEL_OPTIONS = {
 }
 
 # Default configuration
-DEFAULT_MODEL = "codellama"
+DEFAULT_MODEL = "codellama_small"
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 ENABLE_4BIT = True if DEVICE == "cuda" else False
 EMBEDDING_MODEL = "all-MiniLM-L6-v2"
