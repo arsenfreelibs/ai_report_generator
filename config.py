@@ -17,8 +17,9 @@ EMBEDDING_MODEL = "all-MiniLM-L6-v2"
 RERANKER_MODEL = "cross-encoder/ms-marco-MiniLM-L-6-v2"
 
 # Use data from config
-MODEL_PATH = MODEL_OPTIONS.get(DEFAULT_MODEL, MODEL_OPTIONS["codellama"])
-METADATA_PATH = './meta_with_field(with option)_50.json'
+MODEL_KEY = os.environ.get('MODEL_KEY', DEFAULT_MODEL)
+MODEL_PATH = os.environ.get('MODEL_PATH', MODEL_OPTIONS.get(MODEL_KEY, MODEL_OPTIONS[DEFAULT_MODEL]))
+METADATA_PATH = os.environ.get('METADATA_PATH', './meta_with_field(with option)_50.json')
 
 # Print configuration for debugging
 def print_config():
