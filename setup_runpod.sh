@@ -4,11 +4,14 @@
 echo "Python version:"
 python --version
 
-pip uninstall numpy -y
+pip install --ignore-installed flask
 
 # Install dependencies
 echo "Installing dependencies..."
 pip install -r requirements.txt
+
+pip uninstall numpy -y
+pip install numpy==1.26.4
 
 # Verify numpy is installed
 echo "Verifying numpy installation:"

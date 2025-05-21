@@ -44,6 +44,8 @@ Follow these steps to run the application on RunPod:
    # By default, the server runs on port 5000
    # You can change the port with:
    PORT=8080 python api_server.py
+   or
+   MODEL_KEY="codellama" python api_server.py
    ```
    
    Once the server is running, you can make requests to it:
