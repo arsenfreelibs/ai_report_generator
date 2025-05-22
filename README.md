@@ -50,12 +50,19 @@ Follow these steps to run the application on RunPod:
    
    Once the server is running, you can make requests to it:
    ```bash
-   # Example API request
+   # Example API request localy
    curl -X POST http://localhost:5000/generate \
      -H "Content-Type: application/json" \
      -d '{"query": "Find all active work orders from the last week"}'
    ```
-   
+
+   ```bash
+   # Example API request ext
+   curl -X POST http://69.30.85.231:22073/generate \
+     -H "Content-Type: application/json" \
+     -d '{"query": "Find all active work orders from the last week"}'
+   ```
+
    The API returns a JSON response containing:
    - Generated JavaScript code
    - Validation status

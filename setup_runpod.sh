@@ -1,5 +1,36 @@
 #!/bin/bash
 
+# Создаём директорию ~/workspace/ssh, если она не существует
+mkdir -p ~/workspace/ssh
+
+# Проверяем, существуют ли ключи в ~/workspace/ssh
+if [ ! -f ~/workspace/ssh/gitlab_key ] || [ ! -f ~/workspace/ssh/gitlab_key.pub ]; then
+    echo "Ключи не найдены в ~/workspace/ssh, генерируем новые..."
+    ssh-keygen -t ed25519 -C "demo@demo.com" -f ~/workspace/ssh/gitlab_key -N ""
+else
+    echo "Ключи уже существуют в ~/workspace/ssh, пропускаем генерацию."
+fi
+
+# Создаём директорию ~/.ssh, если она не существует
+mkdir -p ~/.ssh
+
+# Создаём конфигурационный файл ~/.ssh/config
+cat > ~/.ssh/config << EOF
+Host github.com
+    HostName github.com
+    User git
+    IdentityFile ~/workspace/ssh/gitlab_key
+    IdentitiesOnly yes
+EOF
+
+# Устанавливаем права доступа для конфигурационного файла
+chmod 600 ~/.ssh/config
+
+# Устанавливаем права доступа для ключей в ~/workspace/ssh
+chmod 600 ~/workspace/ssh/gitlab_key
+chmod 644 ~/workspace/ssh/gitlab_key.pub
+
+
 # Display current Python version
 echo "Python version:"
 python --version
@@ -21,4 +52,6 @@ python -c "import numpy; print(f'NumPy version: {numpy.__version__}')"
 echo "Verifying PyTorch installation:"
 python -c "import torch; print(f'PyTorch version: {torch.__version__}'); print(f'CUDA available: {torch.cuda.is_available()}')"
 
-echo "Setup complete. You can now run the main script with: python main.py"
+echo "Setup complete. Start api_server.py"
+
+MODEL_KEY="codellama" python api_server.py
