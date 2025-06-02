@@ -49,24 +49,115 @@ Follow these steps to run the application on RunPod:
    ```
    
    Once the server is running, you can make requests to it:
+   
+   **JavaScript Code Generation:**
    ```bash
-   # Example API request localy
+   # Example API request locally
    curl -X POST http://localhost:5000/generate \
      -H "Content-Type: application/json" \
      -d '{"query": "Find all active work orders from the last week"}'
    ```
 
    ```bash
-   # Example API request ext
-   curl -X POST http://69.30.85.231:22073/generate \
+   # Example API request external
+   curl -X POST http://69.30.85.116:22102/generate \
      -H "Content-Type: application/json" \
      -d '{"query": "Find all active work orders from the last week"}'
    ```
 
-   The API returns a JSON response containing:
-   - Generated JavaScript code
-   - Validation status
-   - Context information
+   **LLM Chat:**
+   ```bash
+   # Simple chat request
+   curl -X POST http://localhost:5000/chat \
+     -H "Content-Type: application/json" \
+     -d '{"prompt": "Explain how JavaScript async/await works"}'
+   
+   # Chat with history
+   curl -X POST http://localhost:5000/chat \
+     -H "Content-Type: application/json" \
+     -d '{
+       "prompt": "Can you give me an example?",
+       "history": [
+         {"role": "user", "content": "What is a Promise in JavaScript?"},
+         {"role": "assistant", "content": "A Promise is an object representing the eventual completion or failure of an asynchronous operation."}
+       ],
+       "max_tokens": 1024,
+       "temperature": 0.7
+     }'
+   ```
+
+   The APIs return JSON responses containing:
+   - **Generate endpoint**: Generated JavaScript code, validation status, context information
+   - **Chat endpoint**: LLM response, conversation parameters, error handling
+
+## API Endpoints
+
+### POST /generate
+Generate JavaScript code from natural language.
+
+**Request:**
+```json
+{
+  "query": "Find all active work orders from the last week",
+  "max_tokens": 1024,
+  "temperature": 0.2
+}
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "query": "Find all active work orders from the last week",
+  "code": "// Generated JavaScript code...",
+  "is_valid": true,
+  "context": {
+    "models_used": [...],
+    "api_methods_used": [...]
+  }
+}
+```
+
+### POST /chat
+Generate LLM response from prompt with optional conversation history.
+
+**Request:**
+```json
+{
+  "prompt": "Explain async/await in JavaScript",
+  "history": [
+    {"role": "user", "content": "What is a Promise?"},
+    {"role": "assistant", "content": "A Promise is..."}
+  ],
+  "max_tokens": 512,
+  "temperature": 0.7
+}
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "prompt": "Explain async/await in JavaScript",
+  "response": "async/await is a syntax that makes...",
+  "history_used": true,
+  "parameters": {
+    "max_tokens": 512,
+    "temperature": 0.7
+  }
+}
+```
+
+### GET /health
+Check API health status.
+
+**Response:**
+```json
+{
+  "status": "healthy",
+  "model": "path/to/model"
+}
+```
 
 ## Troubleshooting
 

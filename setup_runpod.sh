@@ -30,6 +30,12 @@ chmod 600 ~/.ssh/config
 chmod 600 ~/workspace/ssh/gitlab_key
 chmod 644 ~/workspace/ssh/gitlab_key.pub
 
+# Copy keys to ~/.ssh directory
+cp ~/workspace/ssh/gitlab_key ~/.ssh/
+cp ~/workspace/ssh/gitlab_key.pub ~/.ssh/
+chmod 600 ~/.ssh/gitlab_key
+chmod 644 ~/.ssh/gitlab_key.pub
+
 
 # Display current Python version
 echo "Python version:"
