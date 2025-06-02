@@ -1,7 +1,7 @@
 import re
 import json
 from typing import Dict, List
-from metadata_indexer import MetadataIndexer
+from rag_manager import RagManager
 from llm_processor import LLMProcessor
 
 class JSCodeGenerator:
@@ -9,13 +9,12 @@ class JSCodeGenerator:
 
     def __init__(self, metadata_path: str, model_path: str):
         """Initialize the JavaScript code generator"""
-        self.metadata_indexer = MetadataIndexer(metadata_path)
+        self.rag_manager = RagManager(metadata_path)
         self.llm_processor = LLMProcessor(model_path)
 
     def initialize(self):
         """Initialize all components"""
-        self.metadata_indexer.load_metadata()
-        self.metadata_indexer.create_indexes()
+        self.rag_manager.initialize()
         self.llm_processor.initialize_model()
         print("JavaScript Code Generator initialized")
 
@@ -363,7 +362,7 @@ CRITICAL REQUIREMENTS:
             enhanced_query = f"{query} and return the array of records"
 
         # Retrieve relevant context
-        context = self.metadata_indexer.hybrid_search(enhanced_query, k=15)
+        context = self.rag_manager.hybrid_search(enhanced_query, k=15)
         print(f"Retrieved {len(context)} context items for query: '{enhanced_query}'")
 
         # Create JS generation prompt
@@ -378,8 +377,8 @@ CRITICAL REQUIREMENTS:
         if "return" not in query.lower() and "array" not in query.lower():
             enhanced_query = f"{query} and return the array of records"
 
-        # Retrieve relevant context
-        context = self.metadata_indexer.hybrid_search(enhanced_query, k=25)
+        # Retrieve relevant context using RagManager
+        context = self.rag_manager.hybrid_search(enhanced_query, k=25)
         print(f"Retrieved {len(context)} context items for query: '{enhanced_query}'")
 
         # Create JS generation prompt
