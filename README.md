@@ -84,6 +84,22 @@ Follow these steps to run the application on RunPod:
        "max_tokens": 1024,
        "temperature": 0.7
      }'
+
+     curl -X POST http://69.30.85.116:22102/chat \
+     -H "Content-Type: application/json" \
+     -d '{"prompt": "Explain how JavaScript async/await works"}'
+
+     curl -X POST http://69.30.85.116:22102/chat \
+     -H "Content-Type: application/json" \
+     -d '{
+       "prompt": "Can you give me an example?",
+       "history": [
+         {"role": "user", "content": "What is a Promise in JavaScript?"},
+         {"role": "assistant", "content": "A Promise is an object representing the eventual completion or failure of an asynchronous operation."}
+       ],
+       "max_tokens": 1024,
+       "temperature": 0.7
+     }'
    ```
 
    The APIs return JSON responses containing:
@@ -146,6 +162,84 @@ Generate LLM response from prompt with optional conversation history.
     "temperature": 0.7
   }
 }
+```
+
+### POST /update-metadata
+Update metadata index with new or replacement data.
+
+**Request:**
+```json
+{
+  "action": "add",
+  "metadata": {
+    "data": {
+      "model": [
+        {
+          "id": "new_model_1",
+          "alias": "new_model",
+          "name": "New Model",
+          "field": [
+            {
+              "id": "field_1",
+              "alias": "status",
+              "name": "Status",
+              "type": "array_string",
+              "options": "{\"values\":{\"active\":\"Active\",\"inactive\":\"Inactive\"}}"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "action": "add",
+  "updated_models": 1,
+  "message": "Successfully added 1 models"
+}
+```
+
+**Actions:**
+- `"replace"`: Replace entire metadata with new data
+- `"add"`: Add new models or update existing ones by ID/alias
+
+**Examples:**
+```bash
+# Add new models to existing metadata
+curl -X POST http://localhost:5000/update-metadata \
+  -H "Content-Type: application/json" \
+  -d '{
+    "action": "add",
+    "metadata": {
+      "data": {
+        "model": [
+          {
+            "id": "new_model_1",
+            "alias": "new_model",
+            "name": "New Model",
+            "field": []
+          }
+        ]
+      }
+    }
+  }'
+
+# Replace entire metadata
+curl -X POST http://localhost:5000/update-metadata \
+  -H "Content-Type: application/json" \
+  -d '{
+    "action": "replace",
+    "metadata": {
+      "data": {
+        "model": [...]
+      }
+    }
+  }'
 ```
 
 ### GET /health

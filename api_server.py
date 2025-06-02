@@ -107,6 +107,48 @@ def generate_llm_answer():
             'prompt': request_data.get('prompt', '') if request_data else ''
         }), 500
 
+@app.route('/update-metadata', methods=['POST'])
+def update_metadata():
+    """API endpoint to update metadata index with new or replacement data"""
+    global js_generator
+    
+    try:
+        # Get request data
+        request_data = request.json
+        
+        # Extract metadata update information
+        action = request_data.get('action', 'replace')  # 'add' or 'replace'
+        metadata_updates = request_data.get('metadata', {})
+        
+        if not metadata_updates:
+            return jsonify({
+                'status': 'error',
+                'error': 'No metadata provided'
+            }), 400
+        
+        # Initialize generator if not already done
+        if js_generator is None:
+            print("Initializing JS Code Generator...")
+            js_generator = JSCodeGenerator(metadata_path=METADATA_PATH, model_path=MODEL_PATH)
+            js_generator.initialize()
+        
+        # Update metadata through RAG manager
+        result = js_generator.rag_manager.update_metadata(metadata_updates, action)
+        
+        return jsonify({
+            'status': 'success',
+            'action': action,
+            'updated_models': result.get('updated_models', 0),
+            'message': result.get('message', 'Metadata updated successfully')
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'error': str(e),
+            'action': request_data.get('action', '') if request_data else ''
+        }), 500
+
 def start_server(host='0.0.0.0', port=5000, debug=False):
     """Start the API server"""
     print_config()

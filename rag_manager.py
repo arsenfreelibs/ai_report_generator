@@ -62,3 +62,32 @@ class RagManager:
     def get_js_api_context(self, query: str, k: int = 10) -> List[Dict]:
         """Get only JS API-related context"""
         return self.js_api_indexer.search(query, k=k)
+
+    def update_metadata(self, new_metadata: Dict, action: str = 'replace') -> Dict:
+        """Update metadata and rebuild indexes
+        
+        Args:
+            new_metadata: New metadata to add or replace
+            action: 'add' to append new models, 'replace' to replace existing
+            
+        Returns:
+            Dictionary with update results
+        """
+        # Update metadata through the indexer
+        result = self.metadata_indexer.metadata_loader.update_metadata(new_metadata, action)
+        
+        # Rebuild indexes with updated metadata
+        self.metadata_indexer.extract_index_data()
+        self.metadata_indexer.create_indexes()
+        
+        logger.info(f"Metadata updated and indexes rebuilt: {result['message']}")
+        
+        return result
+    
+    def refresh_indexes(self):
+        """Refresh all indexes (useful after metadata changes)"""
+        self.metadata_indexer.extract_index_data()
+        self.metadata_indexer.create_indexes()
+        self.js_api_indexer.create_indexes()
+        
+        logger.info("All indexes refreshed")
