@@ -77,7 +77,7 @@ class JSCodeGenerator:
                 
                 fields_info.append(field_info)
 
-        # Format report examples
+        # Format report examples with emphasis on client/server script patterns
         report_examples_str = ""
         if report_examples:
             report_examples_str = "\n## Similar Report Examples:\n"
@@ -91,14 +91,14 @@ class JSCodeGenerator:
                 
                 if server_script:
                     # Extract key patterns from server script
-                    server_lines = server_script.split('\n')[:15]  # First 15 lines
+                    server_lines = server_script.split('\n')[:20]  # First 20 lines
                     report_examples_str += f"Server Script Pattern:\n```javascript\n"
                     report_examples_str += "\n".join(server_lines)
                     report_examples_str += "\n```\n"
                 
                 if client_script:
                     # Extract key patterns from client script
-                    client_lines = client_script.split('\n')[:10]  # First 10 lines
+                    client_lines = client_script.split('\n')[:15]  # First 15 lines
                     report_examples_str += f"Client Script Pattern:\n```javascript\n"
                     report_examples_str += "\n".join(client_lines)
                     report_examples_str += "\n```\n"
@@ -243,28 +243,36 @@ try {
 ```
 """
 
-        # Construct the system prompt with stronger emphasis on array_string fields
-        system_prompt = """You are an expert JavaScript code generator for the SL2 system. Your task is to convert natural language requests into precise JavaScript code that uses SL2's API.
+        # Construct the system prompt with emphasis on generating both client and server scripts
+        system_prompt = """You are an expert JavaScript code generator for the SL2 system. Your task is to convert natural language requests into both CLIENT and SERVER JavaScript code that uses SL2's API.
 
 IMPORTANT:
-- Your code MUST ALWAYS return an array of records as the final result.
-- ALWAYS use model and field aliases in your code, NOT their display names.
-- For array_string fields, you MUST use the KEY values in the filter (e.g., 'New', 'Open'), NOT the display values.
+- You must generate BOTH a client script and a server script
+- The server script should handle data retrieval and processing using SL2 API
+- The client script should handle UI interactions and display logic
+- ALWAYS use model and field aliases in your code, NOT their display names
+- For array_string fields, you MUST use the KEY values in the filter (e.g., 'New', 'Open'), NOT the display values
+- Follow the patterns from the provided report examples
+
+Server Script Guidelines:
+1. Use SL2 API methods like p.getModel(), model.find(), p.uiUtils.fetchRecords()
+2. Handle data retrieval, filtering, and processing
+3. Return arrays of records or processed data
+4. Include error handling with try/catch blocks
+5. Use async/await for API calls
+
+Client Script Guidelines:
+1. Handle UI interactions and display logic
+2. Process data for presentation
+3. Manage user interface elements
+4. Handle events and user interactions
 
 Follow these guidelines:
 1. Only use the provided models, fields, and API methods in your code
-2. Always refer to models and fields by their aliases (e.g., use 'test_db_1' not 'Test DB 1')
-3. When calling p.getModel(), always use the model's alias (e.g., p.getModel('test_db_1'))
-4. When querying fields, always use the field's alias (e.g., {status: 'active'}, not {Status: 'active'})
-5. When querying array_string fields, use EXACTLY the key values provided (e.g., {status: 'New'}, not {status: 'New Status'})
-6. For filtering records from the past week, use a date calculation
-7. For limiting records, use .limit(N) method
-8. Write async/await code where appropriate
-9. Include error handling with try/catch blocks for robust code
-10. Add helpful comments to explain your code
-11. Make sure your code returns an array of records at the end
-12. Return only the JavaScript code, with no additional explanations
-13. Use the provided report examples as reference patterns when applicable
+2. Always refer to models and fields by their aliases
+3. When querying array_string fields, use EXACTLY the key values provided
+4. Use the provided report examples as reference patterns
+5. Write clean, well-commented code with proper error handling
 """
 
         # Construct the full prompt
@@ -289,101 +297,66 @@ Follow these guidelines:
 {query}
 
 ## Task:
-Generate JavaScript code that fulfills the user's request using the available models, fields, and API methods.
+Generate BOTH client and server JavaScript code that fulfills the user's request using the available models, fields, and API methods.
 
 CRITICAL REQUIREMENTS:
-1. Your code MUST return an array of records at the end
+1. Generate separate CLIENT and SERVER scripts
 2. ALWAYS use model aliases (e.g., 'test_db_1') instead of display names ('Test DB 1')
 3. ALWAYS use field aliases (e.g., 'status') instead of display names ('Status')
 4. For array_string fields, ALWAYS use the EXACT key values (e.g., 'New', 'Open'), NOT the display values
-5. If filtering for "active" status, check the available values first and use the appropriate key
-6. Use the report examples as reference patterns when applicable
+5. Follow the patterns from the provided report examples
+6. Server script should return data, client script should handle UI
 
-## JavaScript Code:
+## Response Format:
+CLIENT_SCRIPT:
 ```javascript
+// Client script code here
+```
+
+SERVER_SCRIPT:
+```javascript
+// Server script code here
+```
 """
         return prompt
 
-    def _extract_js_from_response(self, response_text: str) -> str:
-        """Extract JavaScript code from model response text"""
-        # Look for code between JavaScript or JS code blocks
-        js_pattern = r"```(?:javascript|js)?\s*([\s\S]*?)```"
-        match = re.search(js_pattern, response_text)
-
-        if match:
-            return match.group(1).strip()
-
-        # If no code found with pattern, look for anything that looks like JS code
-        # This is a fallback in case the model doesn't format its response with code blocks
-        js_like_pattern = r"(?:const|let|var|async function|function|\(\)\s*=>|await)\s+\w+.*?[;{]"
-        matches = re.findall(js_like_pattern, response_text, re.MULTILINE)
-
-        if matches:
-            # Try to extract a coherent code block
-            # Starting from the first match, include everything until end or clear non-code text
-            start_idx = response_text.find(matches[0])
-            code_section = response_text[start_idx:]
-
-            # Look for clear end markers
-            end_markers = ["## ", "Note:", "Explanation:", "This code"]
-            for marker in end_markers:
-                marker_idx = code_section.find(marker)
-                if marker_idx > 0:
-                    code_section = code_section[:marker_idx]
-
-            return code_section.strip()
-
-        # If still no code found, return the whole response
-        return response_text.strip()
-
-    def _ensure_code_returns_array(self, js_code: str) -> str:
-        """Ensure the JavaScript code returns an array of records and uses aliases"""
-        # Add a reminder comment about using aliases if not present
-        if not "// Use model aliases" in js_code and not "// Always use" in js_code:
-            alias_reminder = "\n// REMEMBER: Always use model and field aliases (not display names) in SL2 API calls\n"
-            js_code = alias_reminder + js_code
-
-        # Check if code already has a return statement
-        if "return " in js_code:
-            return js_code
-
-        # Look for common patterns that should return records
-        result_patterns = [
-            r"const\s+(\w+)\s*=\s*await.*?model\.find\(.*?\);",
-            r"const\s+(\w+)\s*=\s*await.*?p\.uiUtils\.fetchRecords\(.*?\);",
-            r"let\s+(\w+)\s*=\s*await.*?model\.find\(.*?\);",
-            r"let\s+(\w+)\s*=\s*await.*?p\.uiUtils\.fetchRecords\(.*?\);"
-        ]
-
-        for pattern in result_patterns:
-            match = re.search(pattern, js_code, re.DOTALL)
-            if match:
-                var_name = match.group(1)
-
-                # Handle fetchRecords which returns an object with data property
-                if "fetchRecords" in match.group(0):
-                    # Check if code already accesses .data property
-                    if f"{var_name}.data" in js_code:
-                        if not js_code.strip().endswith(';'):
-                            js_code += ";\n"
-                        js_code += f"\n// Return the array of records\nreturn {var_name}.data;";
-                    else:
-                        if not js_code.strip().endswith(';'):
-                            js_code += ";\n"
-                        js_code += f"\n// Return the array of records\nreturn {var_name}.data;";
-                else:
-                    if not js_code.strip().endswith(';'):
-                        js_code += ";\n"
-                    js_code += f"\n// Return the array of records\nreturn {var_name};"
-
-                return js_code
-
-        # If no pattern matched, add a general comment about returning records
-        if not js_code.strip().endswith(';'):
-            js_code += ";\n"
-        js_code += "\n// IMPORTANT: Remember to return the array of records at the end of your function"
-
-        return js_code
+    def _extract_client_server_scripts(self, response_text: str) -> Dict[str, str]:
+        """Extract client and server JavaScript code from model response text"""
+        import re
+        
+        # Initialize default scripts
+        client_script = ""
+        server_script = ""
+        
+        # Look for CLIENT_SCRIPT section
+        client_pattern = r"CLIENT_SCRIPT:\s*```(?:javascript|js)?\s*([\s\S]*?)```"
+        client_match = re.search(client_pattern, response_text, re.IGNORECASE)
+        if client_match:
+            client_script = client_match.group(1).strip()
+        
+        # Look for SERVER_SCRIPT section
+        server_pattern = r"SERVER_SCRIPT:\s*```(?:javascript|js)?\s*([\s\S]*?)```"
+        server_match = re.search(server_pattern, response_text, re.IGNORECASE)
+        if server_match:
+            server_script = server_match.group(1).strip()
+        
+        # If no specific sections found, try to extract any JavaScript code blocks
+        if not client_script and not server_script:
+            js_pattern = r"```(?:javascript|js)?\s*([\s\S]*?)```"
+            matches = re.findall(js_pattern, response_text)
+            if matches:
+                # If only one code block, use it as server script
+                if len(matches) == 1:
+                    server_script = matches[0].strip()
+                # If multiple code blocks, first as client, second as server
+                elif len(matches) >= 2:
+                    client_script = matches[0].strip()
+                    server_script = matches[1].strip()
+        
+        return {
+            'client_script': client_script,
+            'server_script': server_script
+        }
 
     def generate_prompt(self, query: str) -> str:
         """Process a natural language query and return JavaScript code"""
@@ -419,16 +392,18 @@ CRITICAL REQUIREMENTS:
         # Generate response from LLM
         response_text = self.llm_processor.generate_response(prompt, max_tokens=1024, temperature=0.2)
 
-        # Extract JS from response
-        js_code = self._extract_js_from_response(response_text)
-
-        # Ensure code returns array of records if it doesn't already
-        js_code = self._ensure_code_returns_array(js_code)
-
+        # Extract client and server scripts from response
+        scripts = self._extract_client_server_scripts(response_text)
+        
+        # Ensure server script returns array of records if it doesn't already
+        if scripts['server_script']:
+            scripts['server_script'] = self._ensure_code_returns_array(scripts['server_script'])
+        
         # Return result
         return {
             "natural_language_query": query,
-            "javascript_code": js_code,
+            "client_script": scripts['client_script'],
+            "server_script": scripts['server_script'],
             "context_used": {
                 "models": [item for item in context if item['type'] == 'model'][:3],
                 "fields": [item for item in context if item['type'] == 'field'][:5],
@@ -512,7 +487,7 @@ CRITICAL REQUIREMENTS:
             request_data: Dictionary containing at minimum a 'query' field
             
         Returns:
-            Dictionary with generated code and metadata
+            Dictionary with generated client and server scripts and metadata
         """
         try:
             # Extract the query from request data
@@ -524,24 +499,48 @@ CRITICAL REQUIREMENTS:
             max_tokens = request_data.get('max_tokens', 1024)
             temperature = request_data.get('temperature', 0.2)
             
-            # Generate code
-            result = self.generate_js_code(query)
+            # Ensure query emphasizes returning records if not already mentioned
+            enhanced_query = query
+            if "return" not in query.lower() and "array" not in query.lower():
+                enhanced_query = f"{query} and return the array of records"
+
+            # Retrieve relevant context using RagManager with emphasis on report examples
+            context = self.rag_manager.hybrid_search(enhanced_query, k=25)
+            print(f"Retrieved {len(context)} context items for query: '{enhanced_query}'")
+
+            # Create JS generation prompt for client/server scripts
+            prompt = self._create_js_prompt(enhanced_query, context)
+            
+            # Generate response from LLM
+            response_text = self.llm_processor.generate_response(prompt, max_tokens=max_tokens, temperature=temperature)
+
+            # Extract client and server scripts from response
+            scripts = self._extract_client_server_scripts(response_text)
+            
+            # Ensure server script returns array of records if it doesn't already
+            if scripts['server_script']:
+                scripts['server_script'] = self._ensure_code_returns_array(scripts['server_script'])
             
             # Return formatted response
             return {
                 'status': 'success',
                 'query': query,
-                'code': result['javascript_code'],
-                'is_valid': self.validate_js(result['javascript_code']),
+                'client_script': scripts['client_script'],
+                'server_script': scripts['server_script'],
+                'is_valid': self.validate_js(scripts['server_script']) if scripts['server_script'] else False,
                 'context': {
                     'models_used': [
                         {'name': model.get('name', ''), 'alias': model.get('alias', '')} 
-                        for model in result['context_used']['models']
-                    ],
+                        for model in context if model.get('type') == 'model'
+                    ][:3],
+                    'report_examples_used': [
+                        {'name': example.get('name', '')} 
+                        for example in context if example.get('type') == 'report_example'
+                    ][:3],
                     'api_methods_used': [
                         {'name': api.get('name', '')} 
-                        for api in result['context_used']['api_methods']
-                    ]
+                        for api in context if api.get('type') == 'js_api'
+                    ][:5]
                 }
             }
         except Exception as e:
