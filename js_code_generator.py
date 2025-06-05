@@ -22,6 +22,15 @@ class JSCodeGenerator:
         """Create a prompt for JS code generation with retrieved context"""
         # Categorize context items
         models_info = [item for item in context if item['type'] == 'model']
+        report_examples = [item for item in context if item['type'] == 'report_example']
+        api_info = [item for item in context if item['type'] == 'js_api']
+        
+        # Format model information with emphasis on aliases
+        models_str = "\n".join([
+            f"- Model: {item.get('name', '')} (alias: '{item.get('alias', '')}', id: {item.get('id', '')})"
+            for item in models_info
+        ])
+
         fields_info = []
         
         # Extract fields from models with special handling for array_string fields
@@ -67,14 +76,32 @@ class JSCodeGenerator:
                         field_info['example_query'] = f"model.find({{'{field.get('alias')}': '{list(values.keys())[0]}'}}) // Use '{list(values.keys())[0]}', not '{list(values.values())[0]}'"
                 
                 fields_info.append(field_info)
-                
-        api_info = [item for item in context if item['type'] == 'js_api']
 
-        # Format model information with emphasis on aliases
-        models_str = "\n".join([
-            f"- Model: {item.get('name', '')} (alias: '{item.get('alias', '')}', id: {item.get('id', '')})"
-            for item in models_info
-        ])
+        # Format report examples
+        report_examples_str = ""
+        if report_examples:
+            report_examples_str = "\n## Similar Report Examples:\n"
+            for example in report_examples:
+                report_examples_str += f"\n### Example: {example.get('name', 'Unknown')}\n"
+                report_examples_str += f"User Request: {example.get('user_request', '')[:200]}...\n"
+                
+                # Add relevant code snippets from client and server scripts
+                client_script = example.get('client_script', '')
+                server_script = example.get('server_script', '')
+                
+                if server_script:
+                    # Extract key patterns from server script
+                    server_lines = server_script.split('\n')[:15]  # First 15 lines
+                    report_examples_str += f"Server Script Pattern:\n```javascript\n"
+                    report_examples_str += "\n".join(server_lines)
+                    report_examples_str += "\n```\n"
+                
+                if client_script:
+                    # Extract key patterns from client script
+                    client_lines = client_script.split('\n')[:10]  # First 10 lines
+                    report_examples_str += f"Client Script Pattern:\n```javascript\n"
+                    report_examples_str += "\n".join(client_lines)
+                    report_examples_str += "\n```\n"
 
         # Format field information, grouped by model, with emphasis on aliases and including possible values
         fields_by_model = {}
@@ -237,6 +264,7 @@ Follow these guidelines:
 10. Add helpful comments to explain your code
 11. Make sure your code returns an array of records at the end
 12. Return only the JavaScript code, with no additional explanations
+13. Use the provided report examples as reference patterns when applicable
 """
 
         # Construct the full prompt
@@ -253,6 +281,8 @@ Follow these guidelines:
 ## Available JS API Methods:
 {api_str}
 
+{report_examples_str}
+
 {js_examples}
 
 ## User Request:
@@ -267,6 +297,7 @@ CRITICAL REQUIREMENTS:
 3. ALWAYS use field aliases (e.g., 'status') instead of display names ('Status')
 4. For array_string fields, ALWAYS use the EXACT key values (e.g., 'New', 'Open'), NOT the display values
 5. If filtering for "active" status, check the available values first and use the appropriate key
+6. Use the report examples as reference patterns when applicable
 
 ## JavaScript Code:
 ```javascript
@@ -335,11 +366,11 @@ CRITICAL REQUIREMENTS:
                     if f"{var_name}.data" in js_code:
                         if not js_code.strip().endswith(';'):
                             js_code += ";\n"
-                        js_code += f"\n// Return the array of records\nreturn {var_name}.data;"
+                        js_code += f"\n// Return the array of records\nreturn {var_name}.data;";
                     else:
                         if not js_code.strip().endswith(';'):
                             js_code += ";\n"
-                        js_code += f"\n// Return the array of records\nreturn {var_name}.data;"
+                        js_code += f"\n// Return the array of records\nreturn {var_name}.data;";
                 else:
                     if not js_code.strip().endswith(';'):
                         js_code += ";\n"

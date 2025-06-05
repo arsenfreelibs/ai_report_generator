@@ -1,0 +1,182 @@
+<user_request>
+Создай визуальный отчёт с двумя карточками: одна отображает количество номинальных сайтов (candidate_site_id IS NULL), другая — количество завершённых кандидатских сайтов (candidate_site_id IS NOT NULL и status NOT IN ('Inactive','New','Decommissioned')), каждая карточка кликабельна и ведёт по соответствующей ссылке.
+</user_request>
+
+<description>
+Визуальный отчет реализует отображение статистики по сущности Site с использованием библиотеки amCharts (am4core). Отчет формирует горизонтальный контейнер с двумя интерактивными карточками: одна отображает Nominal Sites, другая — Completed Candidate Sites. Каждый блок представляет собой контейнер фиксированного размера с цветным фоном, иконкой в формате base64 (list_alternate и completed), числовым значением и подписью, центрированными вертикально и горизонтально.
+
+Модель: site
+Используемые поля:
+candidate_site_id (тип: integer / reference):
+Используется для определения номинальности: IS NULL → сайт номинальный.
+IS NOT NULL → сайт является кандидатом.
+status (тип: string):
+Для кандидатов фильтрация по статусу: статус не должен быть Inactive, New, Decommissioned.
+Статус должен быть NOT NULL.
+Серверная логика (Node.js, async function):
+Получает модель site с отключенной проверкой прав (check_permission: { all: false }).
+Выполняет два запроса:
+siteModel.find({ candidate_site_id: 'ISNULL' }).count() — количество номинальных сайтов.
+siteModel.find({ candidate_site_id: 'ISNOTNULL', status: ['active', 'Temporary', 'Relocated'] }).count() — количество завершённых кандидатских сайтов.
+
+Возвращает структуру:
+{
+  main: {
+    nominalSitesCount,
+    completedCandidateSitesCount,
+  }
+}
+Клиентская логика (JS скрипт):
+Создает контейнер am4core.Container, внутри которого размещаются два дочерних контейнера (nominalSitesContainer, completedSitesContainer).
+При клике на каждую карточку открывается новая вкладка с URL:
+Для номинальных: filter=\candidate_site_id` IS NULL`
+Для завершённых кандидатов: filter=\candidate_site_id` IS NOT NULL AND `status` NOT IN (...)`
+Используется свойство scope.main для привязки числовых значений.
+
+UI особенности:
+Каждая карточка стилизована с закругленными углами (cornerRadius: 15), цветной заливкой и обводкой.
+При наведении курсора меняется на указатель (cursorOverStyle = pointer).
+Всплывающая подсказка реализована с использованием tooltipHTML, включает ссылку на соответствующую выборку.
+</description>
+
+<client_script>
+function(chartdiv, scope) {
+  const chart = am4core.create(chartdiv, am4core.Container);
+  chart.width = 520;
+  chart.height = am4core.percent(100);
+  chart.layout = "horizontal"; 
+  chart.padding(20, 20, 20, 20);
+  chart.align = "center"; 
+  chart.valign = "middle";
+  chart.horizontalCenter = "middle";
+  chart.verticalCenter = "middle";
+
+  const data = scope.main;
+
+  const containerStyle = {
+    size: 200, 
+    padding: 20, 
+    borderWidth: 3, 
+    cornerRadius: 15, 
+    fillOpacity: 0.5, 
+  };
+
+  const host = `${window.location.protocol}//${window.location.host}`;
+
+  const centerContainer = chart.createChild(am4core.Container);
+  centerContainer.layout = "horizontal";
+  centerContainer.width = am4core.percent(100);
+  centerContainer.height = am4core.percent(100);
+  centerContainer.align = "center";
+  centerContainer.valign = "middle";
+  centerContainer.horizontalCenter = "middle";
+  centerContainer.verticalCenter = "middle";
+
+  const nominalSitesContainer = centerContainer.createChild(am4core.Container);
+  nominalSitesContainer.width = containerStyle.size;
+  nominalSitesContainer.height = containerStyle.size;
+  nominalSitesContainer.background.fill = am4core.color("#fce2ff");
+  nominalSitesContainer.background.stroke = am4core.color("#b789c9");
+  nominalSitesContainer.background.strokeWidth = containerStyle.borderWidth;
+  nominalSitesContainer.background.element.attr({ rx: containerStyle.cornerRadius, ry: containerStyle.cornerRadius });
+  nominalSitesContainer.padding(containerStyle.padding, containerStyle.padding, containerStyle.padding, containerStyle.padding);
+  nominalSitesContainer.marginRight = 30;
+
+  const nominalLabelContainer = nominalSitesContainer.createChild(am4core.Container);
+  nominalLabelContainer.layout = "vertical";
+  nominalLabelContainer.align = "center";
+  nominalLabelContainer.valign = "middle";
+
+  const nominalValue = nominalLabelContainer.createChild(am4core.Label);
+  nominalValue.text = `${data.nominalSitesCount}`;
+  nominalValue.fontSize = 44;
+  nominalValue.fontWeight = "bold";
+  nominalValue.fill = am4core.color("#333");
+  nominalValue.marginBottom = 5;
+
+  const nominalText = nominalLabelContainer.createChild(am4core.Label);
+  nominalText.text = "Nominal Sites";
+  nominalText.fontSize = 18;
+  nominalText.fill = am4core.color("#333");
+  nominalText.textAlign = "middle";
+
+  let canditate_url = encodeURI(`${host}/site/view/grid/all_sites?filter=\`candidate_site_id\` IS NULL`);
+
+  nominalSitesContainer.events.on("hit", () => {
+    window.open(canditate_url, "_blank");
+  });
+
+  nominalSitesContainer.tooltipHTML = `
+    <div style="text-align: center;">
+      Click <a href="${canditate_url}" target="_blank" style="color: #007bff; text-decoration: underline;">here</a> to view records.
+    </div>`;
+  nominalSitesContainer.cursorOverStyle = am4core.MouseCursorStyle.pointer;
+
+  const completedSitesContainer = centerContainer.createChild(am4core.Container);
+  completedSitesContainer.width = containerStyle.size;
+  completedSitesContainer.height = containerStyle.size;
+  completedSitesContainer.background.fill = am4core.color("#fff2cc");
+  completedSitesContainer.background.stroke = am4core.color("#e5c381");
+  completedSitesContainer.background.strokeWidth = containerStyle.borderWidth;
+  completedSitesContainer.background.element.attr({ rx: containerStyle.cornerRadius, ry: containerStyle.cornerRadius });
+  completedSitesContainer.padding(containerStyle.padding, containerStyle.padding, containerStyle.padding, containerStyle.padding);
+  completedSitesContainer.marginLeft = 30;
+
+  const completedLabelContainer = completedSitesContainer.createChild(am4core.Container);
+  completedLabelContainer.layout = "vertical";
+  completedLabelContainer.align = "center";
+  completedLabelContainer.valign = "middle";
+
+  const completedValue = completedLabelContainer.createChild(am4core.Label);
+  completedValue.text = `${data.completedCandidateSitesCount}`;
+  completedValue.fontSize = 44;
+  completedValue.fontWeight = "bold";
+  completedValue.fill = am4core.color("#333");
+  completedValue.marginBottom = 5;
+
+  const completedText = completedLabelContainer.createChild(am4core.Label);
+  completedText.text = "Completed\nCandidate Sites";
+  completedText.fontSize = 18;
+  completedText.fill = am4core.color("#333");
+  completedText.marginBottom = 30;
+  completedText.textAlign = "left";
+
+  let url = encodeURI(`${host}/site/view/grid/all_sites?filter=\`candidate_site_id\` IS NOT NULL AND \`status\` NOT IN ('Inactive','New','Decommissioned') AND \`status\` IS NOT NULL`);
+
+  completedSitesContainer.events.on("hit", () => {
+    window.open(url, "_blank");
+  });
+
+  completedSitesContainer.tooltipHTML = `
+    <div style="text-align: center;">
+      Click <a href="${url}" target="_blank" style="color: #007bff; text-decoration: underline;">here</a> to view records.
+    </div>`;
+  completedSitesContainer.cursorOverStyle = am4core.MouseCursorStyle.pointer;
+
+  return chart;
+}
+</client_script>
+
+<server_script>
+async function(scope) {
+  const siteModel = (await p.getModel('site')).setOptions({ check_permission: { all: false } });
+
+  // Подсчет количества номинальных сайтов: Candidate Site ID пустой
+  const nominalSitesCount = await siteModel.find({ candidate_site_id: 'ISNULL' }).count();
+
+  // Подсчет количества завершенных кандидатских сайтов
+  const completedCandidateSitesCount = await siteModel
+    .find({
+      candidate_site_id: 'ISNOTNULL',
+      status: ['active', 'Temporary', 'Relocated']
+    })
+    .count();
+
+  return {
+    main: {
+      nominalSitesCount,
+      completedCandidateSitesCount,
+    },
+  };
+}
+</server_script>

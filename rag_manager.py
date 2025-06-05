@@ -4,16 +4,18 @@ from sentence_transformers import CrossEncoder
 from config import RERANKER_MODEL
 from metadata_indexer import MetadataIndexer
 from js_api_indexer import JsApiIndexer
+from report_example_indexer import ReportExampleIndexer
 
 logger = logging.getLogger(__name__)
 
 class RagManager:
-    """Manages hybrid search across all indexers (metadata and JS API)"""
+    """Manages hybrid search across all indexers (metadata, JS API, and report examples)"""
 
     def __init__(self, metadata_path: str, reranker_model_name: str = RERANKER_MODEL):
         """Initialize the RAG manager"""
         self.metadata_indexer = MetadataIndexer(metadata_path)
         self.js_api_indexer = JsApiIndexer()
+        self.report_example_indexer = ReportExampleIndexer()
         self.reranker_model_name = reranker_model_name
         self.reranker = None
 
@@ -22,6 +24,7 @@ class RagManager:
         self.metadata_indexer.load_metadata()
         self.metadata_indexer.create_indexes()
         self.js_api_indexer.create_indexes()
+        self.report_example_indexer.create_indexes()
         
         # Initialize reranker
         self.reranker = CrossEncoder(self.reranker_model_name)
@@ -36,9 +39,10 @@ class RagManager:
         if not hasattr(self.metadata_indexer, 'vector_store') or self.metadata_indexer.vector_store is None:
             self.initialize()
 
-        # Split k between models and JS API (give more weight to models)
-        model_k = int(k * 0.7)  # 70% for models
-        js_api_k = int(k * 0.5)  # 50% for JS API
+        # Split k between models, JS API, and report examples
+        model_k = int(k * 0.4)  # 50% for models
+        js_api_k = int(k * 0.3)  # 30% for JS API
+        report_k = int(k * 0.3)   # 20% for report examples
 
         # Search models
         model_results = self.metadata_indexer.search(query, k=model_k)
@@ -48,11 +52,14 @@ class RagManager:
         js_api_results = self.js_api_indexer.search(query, k=js_api_k)
         print(f"JS API search returned {len(js_api_results)} documents")
 
+        # Search report examples
+        report_results = self.report_example_indexer.search(query, k=report_k)
+        print(f"Report example search returned {len(report_results)} documents")
+
         # Combine results
-        combined_docs = model_results + js_api_results
+        combined_docs = model_results + js_api_results + report_results
 
         print(f"Combined search returned {len(combined_docs)} unique documents")
-
         return combined_docs
 
     def get_models_context(self, query: str, k: int = 10) -> List[Dict]:
@@ -62,6 +69,10 @@ class RagManager:
     def get_js_api_context(self, query: str, k: int = 10) -> List[Dict]:
         """Get only JS API-related context"""
         return self.js_api_indexer.search(query, k=k)
+
+    def get_report_examples_context(self, query: str, k: int = 5) -> List[Dict]:
+        """Get only report example-related context"""
+        return self.report_example_indexer.search(query, k=k)
 
     def update_metadata(self, new_metadata: Dict, action: str = 'replace') -> Dict:
         """Update metadata and rebuild indexes
@@ -89,5 +100,6 @@ class RagManager:
         self.metadata_indexer.extract_index_data()
         self.metadata_indexer.create_indexes()
         self.js_api_indexer.create_indexes()
+        self.report_example_indexer.create_indexes()
         
         logger.info("All indexes refreshed")

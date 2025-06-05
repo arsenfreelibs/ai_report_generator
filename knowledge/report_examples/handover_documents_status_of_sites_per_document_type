@@ -1,0 +1,219 @@
+<user_request>
+Generate an interactive amCharts XY column chart showing counts of 'handover_document' records grouped by 'status' and split by 'document_type', with clickable tooltips linking to filtered record views.
+</user_request>
+
+<description>
+Title: Interactive Document Status Chart
+
+Description:
+
+This code renders an interactive bar chart using the amCharts XYChart module in a client-side visualization of "handover_document" records. The data is grouped by status (e.g., "New", "Submitted", "Concurred", etc.) and split by document_type (e.g., "CME", "SSV", "PAC", etc.). The chart includes:
+
+Custom status and type ordering logic to enforce consistent axis alignment.
+
+Separate data series for each document_type, dynamically filtered and padded to account for all predefined statuses.
+
+Tooltip links dynamically generated per bar, leading to filtered views on the backend via encoded URL strings.
+
+On-chart value labels rendered as bullets for clarity.
+
+The server script aggregates the count of documents per combination of status and document_type, constructs appropriate filter URLs, and returns the chart-ready structure in the format { type, status, count, url }. It uses the p.iterEach iterator to loop through model records with selected fields (status, document_type) and ensures permissions are disabled via setOptions({ check_permission: { all: false } }).
+
+This report heavily relies on:
+
+Models: handover_document
+
+Fields: status, document_type, id
+
+URL building logic that respects compound filters and null handling for document_type
+
+Client-side library: amCharts 5, utilizing CategoryAxis, ValueAxis, ColumnSeries, and dynamic Tooltip bindings
+
+Document types and statuses must match the predefined arrays to align correctly on the X-axis.
+
+The code is structured into a self-contained visual module (client script) and a backend data provider (server script), suitable for embedding in dashboards, handover summaries, or process tracking interfaces within the CO2 platform.
+</description>
+
+<client_script>
+function (chartdiv, scope) {
+  let data = scope.main || [];
+
+  // Desired order
+  const statusOrder = ["New", "Submitted", "Concurred", "Rejected", "Cancelled"];
+  const typeOrder = ["CME", "SDD/PEAT/FEAT", "SSV", "CBO", "EAC", "PAC", "FAC"];
+
+  // Initialize amCharts root
+  let root = am5.Root.new(chartdiv);
+
+  // Set themes
+  root.setThemes([am5themes_Animated.new(root)]);
+
+  // Create chart
+  let chart = root.container.children.push(
+    am5xy.XYChart.new(root, {
+      panX: false,
+      panY: false,
+      wheelX: "panX",
+      wheelY: "zoomX",
+      layout: root.verticalLayout
+    })
+  );
+
+  // Add legend
+  let legend = chart.children.push(
+    am5.Legend.new(root, {
+      centerX: am5.p50,
+      x: am5.p50
+    })
+  );
+
+  // Create X-axis (CategoryAxis) with grouped data
+  let xAxis = chart.xAxes.push(
+    am5xy.CategoryAxis.new(root, {
+      categoryField: "status",
+      renderer: am5xy.AxisRendererX.new(root, {
+        cellStartLocation: 0.1,
+        cellEndLocation: 0.9
+      }),
+      tooltip: am5.Tooltip.new(root, {})
+    })
+  );
+
+  // Set ordered statuses to X-axis
+  xAxis.data.setAll(statusOrder.map((status) => ({ status })));
+
+  // Create Y-axis (ValueAxis)
+  let yAxis = chart.yAxes.push(
+    am5xy.ValueAxis.new(root, {
+      renderer: am5xy.AxisRendererY.new(root, {}),
+      min: 0,
+      strictMinMax: true,
+      extraMax: 0.1
+    })
+  );
+
+  // Function to create series for each Document Type
+  function makeSeries(type) {
+    let series = chart.series.push(
+      am5xy.ColumnSeries.new(root, {
+        name: type,
+        xAxis: xAxis,
+        yAxis: yAxis,
+        valueYField: "count",
+        categoryXField: "status",
+        clustered: true
+      })
+    );
+
+    // Set series-specific properties
+    series.columns.template.setAll({
+      tooltipText: "Handover Document records with Status = {categoryX} ({name}): {valueY}",
+      width: am5.percent(90),
+      tooltipY: 0,
+      strokeOpacity: 0
+    });
+    
+    series.columns.template.adapters.add("tooltipHTML", function(_, target) {
+      const dataItem = target.dataItem;
+      const url = encodeURI(dataItem.dataContext.url);
+      
+      return `<div style="pointer-events: auto;"><a href="${url}" target="_blank" style="color: white; text-decoration: underline;">Handover Document records with Status = {categoryX} ({name}): {valueY}</a></div>`;
+    });
+    
+    series.set("tooltip", am5.Tooltip.new(root, {
+      keepTargetHover: true,
+      interactive: true
+    }));
+
+    // Filter data for the specific Type
+    let filteredData = data
+      .filter((item) => item.type === type)
+      .map((item) => ({
+        status: item.status,
+        count: item.count,
+        url: item.url
+      }));
+
+    // Add missing statuses with count 0
+    statusOrder.forEach((status) => {
+      if (!filteredData.some((item) => item.status === status)) {
+        filteredData.push({ status, count: 0 });
+      }
+    });
+
+    // Sort data by predefined status order
+    filteredData.sort(
+      (a, b) => statusOrder.indexOf(a.status) - statusOrder.indexOf(b.status)
+    );
+
+    series.data.setAll(filteredData);
+
+    // Add bullets for value labels
+    series.bullets.push(() => {
+      return am5.Bullet.new(root, {
+        locationY: 0.5,
+        sprite: am5.Label.new(root, {
+          text: "{valueY}",
+          fill: root.interfaceColors.get("alternativeText"),
+          centerY: am5.p50,
+          centerX: am5.p50,
+          populateText: true
+        })
+      });
+    });
+
+    // Add to legend
+    legend.data.push(series);
+
+    series.appear();
+  }
+
+  // Create series for each Document Type in the specified order
+  typeOrder.forEach((type) => makeSeries(type));
+
+  // Animate chart
+  chart.appear(1000, 100);
+
+  return root;
+}
+</client_script>
+
+<server_script>
+async function (scope) {
+  const params = p.getRequest();
+  
+  let filter = lodash.get(params, 'filter');
+  filter = filter ? filter : '';
+  
+  let link = `${utils.getHostURL()}/handover_document/view/grid/_g_all?filter=${filter}`;
+  
+  let chartData = [];
+
+  // Retrieve Handover Document data
+  const document_model = (await p.getModel("handover_document")).setOptions({ check_permission: { all: false }});
+  await p.iterEach(
+    scope.find({}).fields(["id", "status", "document_type"]).raw(),
+    (document) => {
+      const { status, document_type } = document;
+      let chartItem = chartData.find(
+        (item) => item.status === status && item.type === document_type
+      );
+      if (chartItem) {
+        chartItem.count += 1;
+      } else {
+        const url = document_type ? `${link.includes('status') ? link : filter === '' ? link + "\`status\`='" + status + "'": link + " AND \`status\`='" + status + "'"} ${link.includes('document_type') ? '' : "AND \`document_type\`='" + document_type + "'"}`: `${link.includes('status') ? link : filter === '' ? link + "\`status\`='" + status + "'": link + " AND \`status\`='" + status + "'"} ${link.includes('document_type') ? '' : "AND \`document_type\` IS NULL" }`;
+        chartData.push({
+          type: document_type,
+          status,
+          count: 1,
+          url
+        });
+      }
+    }
+  );
+
+  return {
+    main: chartData
+  };
+}
+</server_script>

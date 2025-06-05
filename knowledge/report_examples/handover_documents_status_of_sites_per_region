@@ -1,0 +1,419 @@
+<user_request>
+Generate an interactive client-server report visualizing the status distribution of handover_document records by region. On the right side, render a Pie Chart showing the count of SOF (Site On Field) records per region; on the left side, display a Bar Chart with the breakdown of statuses (New, Submitted, Rejected, Concurred, Cancelled) for the selected region. The charts are interactive and linked: clicking a pie slice updates the bar chart with the corresponding regional breakdown. Include dynamic tooltips with hyperlinks pointing to filtered views (/handover_document/view/grid/_g_all?filter=...) based on region and status. Use amCharts 5, with server-side aggregation of data from the handover_document, site, and region models via JS API calls (p.getModel, iterMap, setOptions, etc.).
+</user_request>
+
+<description>
+Title: Handover Document Regional Status Report
+Description:
+This component implements an interactive, data-driven report that visualizes the status distribution of handover documents (SOF) across different regions using amCharts 5 on the client side and NASC’s server-side JS API for data aggregation.
+
+Client-side logic:
+
+Renders a horizontally split layout using amCharts 5:
+
+A Pie Chart (right) visualizes the total SOF record count per region.
+
+A Bar Chart (left) dynamically displays the breakdown of handover statuses for the selected region.
+
+Interactivity:
+
+Selecting a region slice updates the bar chart.
+
+Tooltips include clickable hyperlinks dynamically built to open filtered grid views for each region/status combination.
+
+Percentage calculations (region value / total records) are shown in the center of the pie.
+
+Server-side logic:
+
+Models used:
+
+region: source of all region names and IDs (id, name).
+
+site: used to map site_id to region (id, region).
+
+handover_document (scope): queried for records (id, site_id, status, created_at).
+
+Key logic:
+
+For each region, SOF records are filtered using site_id.region.
+
+For each region, a breakdown array is generated with the counts of SOF statuses (New, Submitted, Rejected, Concurred, Cancelled).
+
+A link is constructed per status-region combination using the filter param, ensuring both status and site_id.region are embedded into the filter string.
+
+Total number of records is calculated for percentage display.
+
+Colors are assigned cyclically from a predefined palette.
+
+Technical Notes:
+
+Uses p.getModel(...).setOptions({ check_permission: { all: false } }) to disable permission checks for region and site.
+
+Uses p.iterMap() and filter() to process records in memory.
+
+All charts are rendered with animationDuration: 0 for performance.
+
+Pie slice activation logic ensures only one active slice at a time and updates the associated bar chart with proper coloring and data.
+
+Labels are rendered in the center of the pie using am5.Label.
+
+tooltipHTML is customized for both pie slices and bar columns to display context-specific hyperlinks.
+</description>
+
+<client_script>
+function (chartdiv, scope) {
+  // 1) Данные от сервера
+  const data = scope.main;             
+  console.log("data", data);    
+  const totalRecords = scope.totalRecords;
+  
+  // let centralIndex = data.findIndex(item => item.category === "Central");
+  // let initialIndex = data.findIndex(item => item.value > 0);
+  // if (initialIndex === -1) initialIndex = 0;
+  
+  const hasAnyData = data.some(item => item.value > 0);
+  let initialIndex = data.findIndex(item => item.category === "Central" && item.value > 0);
+  
+  if (initialIndex === -1) {
+    initialIndex = hasAnyData 
+      ? data.findIndex(item => item.value > 0) // First region with data
+      : data.findIndex(item => item.category === "Central") !== -1 
+        ? data.findIndex(item => item.category === "Central") // Central exists but has no data
+        : 0; // Default to first item
+  }
+
+  // 2) Создаём root amCharts 5
+  let root = am5.Root.new(chartdiv);
+
+  // Тема анимации
+  root.setThemes([
+    am5themes_Animated.new(root)
+  ]);
+
+  // 3) Контейнер (горизонтальная компоновка)
+  let container = root.container.children.push(
+    am5.Container.new(root, {
+      width: am5.p100,
+      height: am5.p100,
+      layout: root.horizontalLayout
+    })
+  );
+
+  // =========================================
+  // Bar Chart (слева) - статусы SOF
+  // =========================================
+  let columnChart = container.children.push(
+    am5xy.XYChart.new(root, {
+      width: am5.p50,
+      panX: false,
+      panY: false,
+      wheelX: "none",
+      wheelY: "none",
+      layout: root.verticalLayout,
+      animationDuration: 0
+    })
+  );
+
+  // Ось Y (категория = статус)
+  let yRenderer = am5xy.AxisRendererY.new(root, {});
+  let yAxis = columnChart.yAxes.push(
+    am5xy.CategoryAxis.new(root, {
+      categoryField: "category", 
+      renderer: yRenderer
+    })
+  );
+  yRenderer.grid.template.setAll({ location: 1 });
+
+  // Ось X (кол-во)
+  let xRenderer = am5xy.AxisRendererX.new(root, { strokeOpacity: 0.1 });
+  let xAxis = columnChart.xAxes.push(
+    am5xy.ValueAxis.new(root, {
+      renderer: xRenderer,
+      strictMinMax: true,
+      extraMin: 0,
+      min: 0,
+      // interval: 5 // шаг 5, если нужно
+    })
+  );
+
+  // Серия столбиков
+  let columnSeries = columnChart.series.push(
+    am5xy.ColumnSeries.new(root, {
+      name: "Handover Document Status",
+      xAxis: xAxis,
+      yAxis: yAxis,
+      valueXField: "value",      // кол-во
+      categoryYField: "category", // статус
+      animationDuration: 0
+    })
+  );
+
+  // Tooltip для баров
+  let currentRegionName = "";
+
+  columnSeries.columns.template.adapters.add("tooltipHTML", function(_, target) {
+    const dataItem = target.dataItem;
+    const url = encodeURI(dataItem.dataContext.filter) || "#";
+    
+    return `<div style="pointer-events: auto;"><a href="${url}" target="_blank" style="color: white; text-decoration: underline;">Handover Document records with Status = {categoryY} and Region = ${currentRegionName}: {valueX}</a></div>`;
+  });
+  
+  columnSeries.set("tooltip", am5.Tooltip.new(root, {
+    keepTargetHover: true,
+    interactive: true
+  }));
+
+  columnChart.appear(0, 0);
+
+  // =========================================
+  // Pie Chart (справа)
+  // =========================================
+  let pieChart = container.children.push(
+    am5percent.PieChart.new(root, {
+      width: am5.p50,
+      innerRadius: am5.percent(50),
+      animationDuration: 0
+    })
+  );
+
+  let pieSeries = pieChart.series.push(
+    am5percent.PieSeries.new(root, {
+      valueField: "value",       // кол-во SOF
+      categoryField: "category",  // название региона
+      animationDuration: 0
+    })
+  );
+
+  // Tooltip для Pie
+  pieSeries.slices.template.setAll({
+    templateField: "sliceSettings",
+    strokeOpacity: 0
+  });
+  
+  pieSeries.slices.template.adapters.add("tooltipHTML", function(_, target) {
+    const dataItem = target.dataItem;
+    const url = encodeURI(dataItem.dataContext.link) || "#";
+    
+    return `<div style="pointer-events: auto;"><a href="${url}" target="_blank" style="color: white; text-decoration: underline;">Handover Document records with Region = {category}: {value}</a></div>`;
+  });
+  
+  pieSeries.slices.template.set("tooltip", am5.Tooltip.new(root, {
+    keepTargetHover: true,
+    interactive: true,
+  }));
+
+  // При выборе сектора - обновляем Bar
+  let currentSlice;
+  pieSeries.slices.template.on("active", function (active, slice) {
+    if (!active) return;
+
+    if (currentSlice && currentSlice != slice && active) {
+      currentSlice.set("active", false);
+    }
+    currentSlice = slice;
+
+    let color = slice.get("fill");
+    let regionName = slice.dataItem.get("category");
+    let regionCount = slice.dataItem.get("value");
+
+    // Вычисляем % (regionCount / totalRecords)*100
+    let percentVal = 0;
+    if (totalRecords > 0) {
+      percentVal = (regionCount / totalRecords) * 100;
+    }
+    let pctFormatted = percentVal.toFixed(2);
+    let centerText = pctFormatted + "%";
+
+    // Обновляем лейблы в центре пирога
+    label1.setAll({
+      fill: color,
+      text: centerText
+    });
+    label2.set("text", regionName);
+
+    // Запоминаем регион для tooltip Bar
+    currentRegionName = regionName;
+    columnSeries.columns.template.setAll({
+      fill: color,
+      stroke: color,
+    });
+
+    // Устанавливаем breakdown (статусы) в Bar Chart
+    columnSeries.data.setAll(slice.dataItem.dataContext.breakdown);
+    yAxis.data.setAll(slice.dataItem.dataContext.breakdown);
+  });
+
+  // Спрятать стандартные подписи
+  pieSeries.labels.template.set("forceHidden", true);
+  pieSeries.ticks.template.set("forceHidden", true);
+
+  // Данные в Pie
+  pieSeries.data.setAll(data);
+
+  // Лейблы в центре пирога
+  let label1 = pieChart.seriesContainer.children.push(
+    am5.Label.new(root, {
+      text: "",
+      fontSize: 35,
+      fontWeight: "bold",
+      centerX: am5.p50,
+      centerY: am5.p50
+    })
+  );
+  let label2 = pieChart.seriesContainer.children.push(
+    am5.Label.new(root, {
+      text: "",
+      fontSize: 12,
+      centerX: am5.p50,
+      centerY: am5.p50,
+      dy: 30
+    })
+  );
+
+  // При первой загрузке активируем первый сектор (если есть)
+  pieSeries.events.on("datavalidated", function() {
+    if (pieSeries.slices.length > 0) {
+        let initialSlice = pieSeries.slices.getIndex(initialIndex);
+        
+        if (initialSlice && initialSlice.dataItem) {
+            columnSeries.data.setAll(initialSlice.dataItem.dataContext.breakdown);
+            yAxis.data.setAll(initialSlice.dataItem.dataContext.breakdown);
+            
+            let initialRegion = initialSlice.dataItem.get("category");
+            currentRegionName = initialRegion;
+            
+            let fillColor = initialSlice.get("fill");
+            
+            columnSeries.columns.template.setAll({
+                fill: fillColor,
+                stroke: fillColor,
+            });
+            
+            let regionValue = initialSlice.dataItem.get("value") || 0;
+            let percentVal = totalRecords > 0 ? (regionValue / totalRecords) * 100 : 0;
+            let percentText = percentVal.toFixed(2) + "%";
+            
+            label1.setAll({
+                fill: fillColor,
+                text: percentText
+            });
+            label2.set("text", initialRegion);
+            
+            initialSlice.set("active", true);
+            currentSlice = initialSlice;
+        }
+    }
+  });
+
+  return root;
+}
+</client_script>
+
+<server_script>
+async function (scope) {
+  const params = p.getRequest();
+  
+  let filter = lodash.get(params, 'filter');
+  filter = filter ? filter : '';
+  
+  let link = `${utils.getHostURL()}/handover_document/view/grid/_g_all?filter=${filter}`;
+  
+  const region_model = (await p.getModel("region")).setOptions({ check_permission: { all: false } });
+  const regionMapping = {};
+  await p.iterEach(
+    region_model.find({}).fields(['id', 'name']).raw(),
+    function(region) {
+      regionMapping[region.name] = region.id;
+    }
+  )
+  
+  // ---------------------------------------------------------
+  // 3) Собираем мапинг siteId → regionId
+  // ---------------------------------------------------------
+  const site_model = (await p.getModel("site")).setOptions({ check_permission: { all: false } });
+  const siteIdToRegionId = {};
+  await p.iterEach(
+    site_model
+      .find({
+        // можно без фильтров, если хотим все site
+      })
+      .fields(["id", "region"])
+      .raw(),
+    (site) => {
+      siteIdToRegionId[site.id] = site.region;
+    }
+  );
+
+  // ---------------------------------------------------------
+  // 4) Модель SOF, ищем записи за прошлый месяц
+  // ---------------------------------------------------------
+  const handoverRecords = await p.iterMap(
+    scope.find({}).fields(['id', 'site_id', 'status', 'created_at']).raw(),
+    ho => ho
+  );
+
+  // ---------------------------------------------------------
+  // 5) Подсчитываем общее кол-во SOF
+  // ---------------------------------------------------------
+  const totalRecords = handoverRecords.length;
+
+  // ---------------------------------------------------------
+  // 6) Список цветов (при желании можно расширить)
+  // ---------------------------------------------------------
+  let index = -1;
+  const colors = [
+    "#dc4534",
+    "#d7a700",
+    "#68ad5c",
+    "#006fb9",
+    "#9b59b6",
+    "#b53471"
+  ];
+
+  // ---------------------------------------------------------
+  // 7) Собираем массив data для Pie/Bar, взяв все регионы из CO "Regions"
+  // ---------------------------------------------------------
+
+
+  let region, data = [];
+  for (let name in regionMapping) {
+    regionId = regionMapping[name];
+    index++;
+    const regionHandovers = handoverRecords.filter((rec) => siteIdToRegionId[rec.site_id] == regionId);
+    const regionCount = regionHandovers.length;
+    
+    const breakdown = [
+      "New",
+      "Submitted",
+      "Rejected",
+      "Concurred",
+      "Cancelled"
+    ].map((statusStr) => {
+      // Считаем, сколько SOF имеет данный статус
+      const count = regionHandovers.filter((r) => r.status === statusStr).length;
+      return {
+        category: statusStr,
+        value: count,
+        filter :`${link.includes('status') ? link : filter === '' ? link + "\`status\`='" + statusStr + "'" : link + " AND \`status\`='" + statusStr + "'"} ${link.includes('region') ? '' : `AND \`site_id\`.\`region\`=${regionId}`}`
+      };
+    });
+    data.push({
+      category: name,  // Для Pie
+      value: regionCount,    // Кол-во
+      sliceSettings: {
+        fill: colors[index % colors.length],
+      },
+      breakdown,
+      'link': `${link.includes('region') ? link : filter === '' ? link + `\`site_id\`.\`region\`=${regionId}` : link + `AND \`site_id\`.\`region\`=${regionId}`} AND \`status\` IS NOT NULL`
+    });
+  }
+  
+  // ---------------------------------------------------------
+  // 8) Возвращаем на клиент
+  // ---------------------------------------------------------
+  return {
+    main: data.sort((a, b) => b.value - a.value),
+    totalRecords: totalRecords,
+  };
+}
+</server_script>
