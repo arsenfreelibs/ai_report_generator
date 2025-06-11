@@ -378,6 +378,7 @@ CRITICAL REQUIREMENTS:
 ```javascript
 """
 
+        print(f"Client prompt: {prompt}")
         return prompt
 
     def generate_server_script_prompt(self, query: str) -> str:
@@ -393,7 +394,7 @@ CRITICAL REQUIREMENTS:
 
         # Create JS generation prompt
         prompt = self._create_js_prompt(enhanced_query, context)
-        print(f"prompt: {prompt}")   
+        # print(f"prompt: {prompt}")   
         return prompt
 
     def generate_js_code(self, query: str) -> Dict:
@@ -409,10 +410,11 @@ CRITICAL REQUIREMENTS:
 
         # Create server-side JS generation prompt
         server_prompt = self._create_js_prompt(enhanced_query, context)
-        print(f"Server prompt: {server_prompt}")
+        # print(f"Server prompt: {server_prompt}")
         
         # Generate server-side response from LLM
         server_response_text = self.llm_processor.generate_response(server_prompt, max_tokens=1024, temperature=0.2)
+        print(f"Server response: {server_response_text}")
 
         # Extract server JS from response
         server_js_code = self._extract_js_from_response(server_response_text)
@@ -422,10 +424,11 @@ CRITICAL REQUIREMENTS:
 
         # Create client-side JS generation prompt
         client_prompt = self._create_client_js_prompt(enhanced_query, context, server_js_code)
-        print(f"Client prompt: {client_prompt}")
+        # print(f"Client prompt: {client_prompt}")
         
         # Generate client-side response from LLM
         client_response_text = self.llm_processor.generate_response(client_prompt, max_tokens=1024, temperature=0.2)
+        print(f"Client response: {client_response_text}")
 
         # Extract client JS from response
         client_js_code = self._extract_js_from_response(client_response_text)
@@ -536,19 +539,28 @@ CRITICAL REQUIREMENTS:
             if not query:
                 return {'error': 'No query provided', 'status': 'error'}
             
-            # Optional parameters
+            # Optional parameters (for future use)
             max_tokens = request_data.get('max_tokens', 1024)
             temperature = request_data.get('temperature', 0.2)
             
-            # Generate code
+            # Generate code using the main method
             result = self.generate_js_code(query)
+            
+            # Validate both server and client code
+            server_valid = self.validate_js(result['server_script'])
+            client_valid = self.validate_client_js(result['client_script'])
             
             # Return formatted response
             return {
                 'status': 'success',
-                'query': query,
-                'code': result['javascript_code'],
-                'is_valid': self.validate_js(result['javascript_code']),
+                'query': result['natural_language_query'],
+                'server_script': result['server_script'],
+                'client_script': result['client_script'],
+                'validation': {
+                    'server_valid': server_valid,
+                    'client_valid': client_valid,
+                    'overall_valid': server_valid and client_valid
+                },
                 'context': {
                     'models_used': [
                         {'name': model.get('name', ''), 'alias': model.get('alias', '')} 
@@ -557,6 +569,10 @@ CRITICAL REQUIREMENTS:
                     'api_methods_used': [
                         {'name': api.get('name', '')} 
                         for api in result['context_used']['api_methods']
+                    ],
+                    'report_examples_used': [
+                        {'name': example.get('name', '')} 
+                        for example in result['context_used']['report_examples']
                     ]
                 }
             }
