@@ -6,7 +6,7 @@ MODEL_OPTIONS = {
     "codellama": "codellama/CodeLlama-13b-Instruct-hf",
     "mixtral": "mistralai/Mixtral-8x7B-Instruct-v0.1",
     "qwen": "Qwen/Qwen-14B-Chat",
-    "codellama_small": "codellama/CodeLlama-7b-Instruct-hf"  # Adding smaller CodeLlama model
+    "codellama_small": "codellama/CodeLlama-7b-Instruct-hf"
 }
 
 # Default configuration
@@ -23,7 +23,9 @@ METADATA_PATH = os.environ.get('METADATA_PATH', './cellcardcambodia_meta.json')
 
 # Google Drive Configuration
 GDRIVE_FILE_ID = None  # Set your Google Drive file ID here
-GDRIVE_CREDENTIALS_PATH = 'credentials.json'  # Path to your Google Drive credentials file
+GDRIVE_CREDENTIALS_PATH = 'credentials.json'
+
+JS_API_FALLBACK_FILE = 'co2_js_api.json'
 
 # Print configuration for debugging
 def print_config():

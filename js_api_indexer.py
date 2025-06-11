@@ -11,7 +11,7 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from langchain_community.vectorstores import FAISS
 from langchain.embeddings.sentence_transformer import SentenceTransformerEmbeddings
 from rank_bm25 import BM25Okapi
-from config import EMBEDDING_MODEL, GDRIVE_FILE_ID, GDRIVE_CREDENTIALS_PATH
+from config import EMBEDDING_MODEL, GDRIVE_FILE_ID, GDRIVE_CREDENTIALS_PATH, JS_API_FALLBACK_FILE
 
 logger = logging.getLogger(__name__)
 
@@ -66,19 +66,19 @@ class JsApiIndexer:
             logger.error(f"Failed to setup Google Drive API service: {e}")
             self.drive_service = None
 
-    def _get_file_metadata(self) -> Dict:
-        """Get file metadata from Google Drive"""
+    def _get_js_api_file_info(self) -> Dict:
+        """Get JS API file info from Google Drive"""
         if not self.drive_service or not self.gdrive_file_id:
             return {}
         
         try:
-            file_metadata = self.drive_service.files().get(
+            js_api_file_info = self.drive_service.files().get(
                 fileId=self.gdrive_file_id,
                 fields='id,name,modifiedTime,mimeType'
             ).execute()
-            return file_metadata
+            return js_api_file_info
         except HttpError as e:
-            logger.error(f"Error getting file metadata: {e}")
+            logger.error(f"Error getting JS API file info: {e}")
             return {}
 
     def _download_file_content(self) -> str:
@@ -133,7 +133,40 @@ class JsApiIndexer:
             return self._get_fallback_data()
 
     def _get_fallback_data(self) -> List[Dict]:
-        """Return hardcoded fallback data if file cannot be loaded"""
+        """Return fallback data from local JSON file if Google Drive file cannot be loaded"""
+        fallback_file_path = JS_API_FALLBACK_FILE
+        
+        try:
+            if os.path.exists(fallback_file_path):
+                with open(fallback_file_path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                
+                # Validate data structure
+                if isinstance(data, list):
+                    for item in data:
+                        required_fields = ['type', 'name', 'description', 'syntax', 'example', 'content']
+                        if not all(field in item for field in required_fields):
+                            logger.warning(f"Invalid data structure in {fallback_file_path}, using hardcoded fallback")
+                            return self._get_hardcoded_fallback_data()
+                    
+                    logger.info(f"Loaded {len(data)} JS API methods from fallback file: {fallback_file_path}")
+                    return data
+                else:
+                    logger.warning(f"Invalid data format in {fallback_file_path}, using hardcoded fallback")
+                    return self._get_hardcoded_fallback_data()
+            else:
+                logger.warning(f"Fallback file not found: {fallback_file_path}, using hardcoded fallback")
+                return self._get_hardcoded_fallback_data()
+                
+        except json.JSONDecodeError as e:
+            logger.error(f"JSON decode error in {fallback_file_path}: {e}, using hardcoded fallback")
+            return self._get_hardcoded_fallback_data()
+        except Exception as e:
+            logger.error(f"Error loading fallback data from {fallback_file_path}: {e}, using hardcoded fallback")
+            return self._get_hardcoded_fallback_data()
+
+    def _get_hardcoded_fallback_data(self) -> List[Dict]:
+        """Return hardcoded fallback data as last resort"""
         return [
             {
                 'type': 'js_api',
@@ -202,16 +235,16 @@ class JsApiIndexer:
         ]
 
     def _file_has_changed(self) -> bool:
-        """Check if the Google Drive file has been modified"""
+        """Check if the Google Drive JS API file has been modified"""
         try:
             if not self.drive_service or not self.gdrive_file_id:
                 return False
             
-            file_metadata = self._get_file_metadata()
-            if not file_metadata:
+            js_api_file_info = self._get_js_api_file_info()
+            if not js_api_file_info:
                 return False
             
-            current_modified_time = file_metadata.get('modifiedTime')
+            current_modified_time = js_api_file_info.get('modifiedTime')
             if not current_modified_time:
                 return False
             
@@ -227,7 +260,7 @@ class JsApiIndexer:
             return False
             
         except Exception as e:
-            logger.error(f"Error checking file modification time: {e}")
+            logger.error(f"Error checking JS API file modification time: {e}")
             return False
 
     def extract_index_data(self) -> List[Dict]:
@@ -256,8 +289,8 @@ class JsApiIndexer:
 
             # Create FAISS index for JS API
             docs = [item['content'] for item in self.index_data]
-            metadatas = [{k: v for k, v in item.items() if k != 'content'} for item in self.index_data]
-            self.vector_store = FAISS.from_texts(docs, embedding_model, metadatas=metadatas)
+            js_api_data = [{k: v for k, v in item.items() if k != 'content'} for item in self.index_data]
+            self.vector_store = FAISS.from_texts(docs, embedding_model, metadatas=js_api_data)
 
             # Create BM25 index
             tokenized_corpus = [doc.lower().split() for doc in self.raw_texts]
