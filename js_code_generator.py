@@ -490,5 +490,79 @@ CRITICAL REQUIREMENTS:
         """Interactive mode for testing JavaScript code generation"""
         print("Starting interactive JavaScript code generation mode")
         print("Enter your natural language request or type 'exit' to quit")
-        print("Note: Generated code will include
+        print("Note: Generated code will always return an array of records")
+
+        while True:
+            query = input("\nRequest: ")
+            if query.lower() in ['exit', 'quit', 'q']:
+                break
+
+            try:
+                result = self.generate_js_code(query)
+                js_code = result["javascript_code"]
+
+                print(f"\nGenerated JavaScript Code:\n")
+                print(js_code)
+
+                if not self.validate_js(js_code):
+                    print("\nWarning: The generated code may have issues with returning an array of records.")
+                    print("Make sure to add a proper return statement that returns the array.")
+                else:
+                    print("\n✓ Code successfully returns an array of records")
+
+                print("\nContext used:")
+                for model in result["context_used"]["models"]:
+                    print(f"- Model: {model.get('name', '')} ({model.get('alias', '')})")
+
+                print("\nKey API methods:")
+                for api in result["context_used"]["api_methods"]:
+                    print(f"- {api.get('name', '')}")
+
+            except Exception as e:
+                print(f"Error generating JavaScript code: {str(e)}")
+
+    def api_generate_js_code(self, request_data: Dict) -> Dict:
+        """API endpoint to generate JavaScript code from natural language query
+        
+        Args:
+            request_data: Dictionary containing at minimum a 'query' field
+            
+        Returns:
+            Dictionary with generated code and metadata
+        """
+        try:
+            # Extract the query from request data
+            query = request_data.get('query', '')
+            if not query:
+                return {'error': 'No query provided', 'status': 'error'}
+            
+            # Optional parameters
+            max_tokens = request_data.get('max_tokens', 1024)
+            temperature = request_data.get('temperature', 0.2)
+            
+            # Generate code
+            result = self.generate_js_code(query)
+            
+            # Return formatted response
+            return {
+                'status': 'success',
+                'query': query,
+                'code': result['javascript_code'],
+                'is_valid': self.validate_js(result['javascript_code']),
+                'context': {
+                    'models_used': [
+                        {'name': model.get('name', ''), 'alias': model.get('alias', '')} 
+                        for model in result['context_used']['models']
+                    ],
+                    'api_methods_used': [
+                        {'name': api.get('name', '')} 
+                        for api in result['context_used']['api_methods']
+                    ]
+                }
+            }
+        except Exception as e:
+            return {
+                'status': 'error',
+                'error': str(e),
+                'query': request_data.get('query', '')
             }
