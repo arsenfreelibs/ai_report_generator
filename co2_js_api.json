@@ -1,0 +1,250 @@
+[
+  {
+    "type": "js_api",
+    "name": "p.getModel",
+    "description": "Gets a model by alias or ID",
+    "syntax": "p.getModel(model_alias_or_id)",
+    "example": "const model = await p.getModel('test_db_1');",
+    "content": "JS API: p.getModel(model_alias_or_id) - Gets a model by alias or ID. Example: const model = await p.getModel('test_db_1');"
+  },
+  {
+    "type": "js_api",
+    "name": "p.getRecord",
+    "description": "Gets a specific record by model and record ID",
+    "syntax": "p.getRecord(model, record_id, params)",
+    "example": "const record = await p.getRecord('user', 123, {humanize: true});",
+    "content": "JS API: p.getRecord(model, record_id, params) - Gets a specific record by model and record ID. Parameters: model (alias or ID), record_id (numeric), params (optional object with humanize and load_extra_fields flags). Example: const record = await p.getRecord('user', 123, {humanize: true});"
+  },
+  {
+    "type": "js_api",
+    "name": "model.find",
+    "description": "Queries records from the model with filters",
+    "syntax": "model.find(filter_object)",
+    "example": "const records = await model.find({status: 'active'});",
+    "content": "JS API: model.find(filter_object) - Queries records from the model with filters. Supports operators like =, >, <, !=, IN, NOTIN, STARTSWITH, ENDSWITH, LIKE, NOTLIKE, ISNULL, ISNOTNULL. Example: const records = await model.find({status: 'active'});"
+  },
+  {
+    "type": "js_api",
+    "name": "model.findOne",
+    "description": "Returns a single record matching the filter",
+    "syntax": "model.findOne(filter_object)",
+    "example": "const record = await model.findOne({id: 1});",
+    "content": "JS API: model.findOne(filter_object) - Returns a single record matching the filter, not an array. Example: const record = await model.findOne({id: 1});"
+  },
+  {
+    "type": "js_api",
+    "name": "model.orFind",
+    "description": "Adds OR condition to query",
+    "syntax": "model.find({}).orFind({})",
+    "example": "const records = await model.find({status: 'active'}).orFind({priority: 'high'});",
+    "content": "JS API: model.orFind(filter_object) - Adds OR condition to query. Works as: (a = 1 && b = 2) || (c = 3 && d = 4). Example: const records = await model.find({status: 'active'}).orFind({priority: 'high'});"
+  },
+  {
+    "type": "js_api",
+    "name": "model.order",
+    "description": "Adds ordering to query",
+    "syntax": "model.find({}).order({field: 'desc'})",
+    "example": "const records = await model.find({}).order({created_at: 'desc'});",
+    "content": "JS API: model.order(order_object) - Adds ordering to query. Use 'asc' or 'desc' for sort direction. Example: const records = await model.find({}).order({created_at: 'desc'});"
+  },
+  {
+    "type": "js_api",
+    "name": "model.join",
+    "description": "Joins multiple models in query",
+    "syntax": "model.join(model_b, alias_b, model_a, alias_a)",
+    "example": "const result = await model_a.join(model_b, 'alias_b', model_a, 'alias_a').find({});",
+    "content": "JS API: model.join(model_b, alias_b, model_a, alias_a) - Joins multiple models in query. Allows querying across related models. Example: const result = await model_a.join(model_b, 'alias_b', model_a, 'alias_a').find({});"
+  },
+  {
+    "type": "js_api",
+    "name": "model.fields",
+    "description": "Specifies which fields to select in query",
+    "syntax": "model.find({}).fields(['field1', 'field2'])",
+    "example": "const records = await model.find({}).fields(['name', 'email']);",
+    "content": "JS API: model.fields(field_array) - Specifies which fields to select in query. ID field is always included. Example: const records = await model.find({}).fields(['name', 'email']);"
+  },
+  {
+    "type": "js_api",
+    "name": "model.raw",
+    "description": "Returns raw field values instead of record objects",
+    "syntax": "model.find({}).raw()",
+    "example": "const data = await model.find({}).raw();",
+    "content": "JS API: model.raw() - Returns raw field values instead of record objects for faster queries. Returns array of {alias: value} objects. Example: const data = await model.find({}).raw();"
+  },
+  {
+    "type": "js_api",
+    "name": "model.group",
+    "description": "Groups records by field with aggregation",
+    "syntax": "model.find({}).group('field_alias', aggregate_object)",
+    "example": "const grouped = await model.find({}).group('status', {'total': {'COUNT': 'id'}});",
+    "content": "JS API: model.group(group_field_alias, aggregate_object) - Groups records by field with aggregation. Supports AVG, FIRST, LAST, MAX, MIN, SUM, COUNT operators. Example: const grouped = await model.find({}).group('status', {'total': {'COUNT': 'id'}});"
+  },
+  {
+    "type": "js_api",
+    "name": "model.limit",
+    "description": "Limits number of records returned",
+    "syntax": "model.find({}).limit(row_count, offset)",
+    "example": "const records = await model.find({}).limit(10, 5);",
+    "content": "JS API: model.limit(row_count, offset) - Limits number of records returned. row_count is required, offset is optional (default 0). Example: const records = await model.find({}).limit(10, 5);"
+  },
+  {
+    "type": "js_api",
+    "name": "model.count",
+    "description": "Returns count of matching records",
+    "syntax": "model.find({}).count()",
+    "example": "const count = await model.find({status: 'active'}).count();",
+    "content": "JS API: model.count() - Returns count of matching records as a number. Example: const count = await model.find({status: 'active'}).count();"
+  },
+  {
+    "type": "js_api",
+    "name": "model.dateTrunc",
+    "description": "Sets precision for date-time comparisons",
+    "syntax": "model.find({}).dateTrunc(precision_type)",
+    "example": "const records = await model.find({date_field: '2024-01-01'}).dateTrunc('day');",
+    "content": "JS API: model.dateTrunc(precision_type) - Sets precision for date-time comparisons. Supports: milliseconds, second, minute, hour, day, week, month, quarter, year. Default is 'second'. Example: const records = await model.find({date_field: '2024-01-01'}).dateTrunc('day');"
+  },
+  {
+    "type": "js_api",
+    "name": "model.delete",
+    "description": "Bulk delete records matching filter",
+    "syntax": "model.find({}).delete()",
+    "example": "const affected = await model.find({status: 'inactive'}).delete();",
+    "content": "JS API: model.delete() - Bulk delete records matching filter. Returns number of affected rows. Uses chunking (default 5000 records) for performance. Does not trigger DB rules or create audit records. Example: const affected = await model.find({status: 'inactive'}).delete();"
+  },
+  {
+    "type": "js_api",
+    "name": "model.update",
+    "description": "Bulk update records matching filter",
+    "syntax": "model.find({}).update(data_obj)",
+    "example": "const affected = await model.find({status: 'pending'}).update({status: 'processed'});",
+    "content": "JS API: model.update(data_obj) - Bulk update records matching filter. Returns number of affected rows. Supports regular values and raw SQL objects. Does not trigger DB rules. Example: const affected = await model.find({status: 'pending'}).update({status: 'processed'});"
+  },
+  {
+    "type": "js_api",
+    "name": "model.massInsert",
+    "description": "Bulk insert multiple records",
+    "syntax": "model.massInsert(data_array)",
+    "example": "const ids = await model.massInsert([{name: 'John'}, {name: 'Jane'}]);",
+    "content": "JS API: model.massInsert(data_array) - Bulk insert multiple records. Returns array of created record IDs. Does not trigger DB rules or create audit records. Example: const ids = await model.massInsert([{name: 'John'}, {name: 'Jane'}]);"
+  },
+  {
+    "type": "js_api",
+    "name": "model.getSQL",
+    "description": "Gets SQL query string for debugging",
+    "syntax": "model.getSQL()",
+    "example": "const sql = model.getSQL();",
+    "content": "JS API: model.getSQL() - Gets SQL query string for debugging. Available after each query (not for insert/update/delete). On by default, can be disabled with setOptions({sqlDebug: false}). Example: const sql = model.getSQL();"
+  },
+  {
+    "type": "js_api",
+    "name": "p.iterEach",
+    "description": "Iterates through query results processing records one by one",
+    "syntax": "p.iterEach(query, batchSize, cbFunction)",
+    "example": "await p.iterEach(model.find({}), 1000, rec => { console.log(rec.id); });",
+    "content": "JS API: p.iterEach(query, batchSize, cbFunction) - Iterates through query results processing records one by one. Default batchSize is 1000. Returns undefined. Example: await p.iterEach(model.find({}), 1000, rec => { console.log(rec.id); });"
+  },
+  {
+    "type": "js_api",
+    "name": "p.iterMap",
+    "description": "Iterates through query results and maps to new array",
+    "syntax": "p.iterMap(query, batchSize, cbFunction)",
+    "example": "const ids = await p.iterMap(model.find({}), 1000, rec => rec.id);",
+    "content": "JS API: p.iterMap(query, batchSize, cbFunction) - Iterates through query results and maps to new array. Default batchSize is 1000. Returns array of mapped values. Example: const ids = await p.iterMap(model.find({}), 1000, rec => rec.id);"
+  },
+  {
+    "type": "js_api",
+    "name": "p.iterFeed",
+    "description": "Iterates through query results processing batches of records",
+    "syntax": "p.iterFeed(query, batchSize, cbFunction)",
+    "example": "await p.iterFeed(model.find({}), 1000, records => { console.log(records.length); });",
+    "content": "JS API: p.iterFeed(query, batchSize, cbFunction) - Iterates through query results processing batches of records. Default batchSize is 1000. Callback receives array of records. Example: await p.iterFeed(model.find({}), 1000, records => { console.log(records.length); });"
+  },
+  {
+    "type": "js_api",
+    "name": "p.utils.buildSqlCasesQuery",
+    "description": "Helper to build SQL CASE statements for bulk updates",
+    "syntax": "p.utils.buildSqlCasesQuery(arr_of_obj, params)",
+    "example": "const sqlObj = await p.utils.buildSqlCasesQuery([{id: 1, name: 'John'}], {key: 'id', model: 'user'});",
+    "content": "JS API: p.utils.buildSqlCasesQuery(arr_of_obj, params) - Helper to build SQL CASE statements for bulk updates. Creates raw SQL objects for use with model.update(). Example: const sqlObj = await p.utils.buildSqlCasesQuery([{id: 1, name: 'John'}], {key: 'id', model: 'user'});"
+  },
+  {
+    "type": "js_api",
+    "name": "p.uiUtils.fetchRecords",
+    "description": "Fetch records from UI side in async mode",
+    "syntax": "p.uiUtils.fetchRecords(model_alias, params)",
+    "example": "const result = await p.uiUtils.fetchRecords('user', {filter: 'active = true'});",
+    "content": "JS API: p.uiUtils.fetchRecords(model_alias, params) - Fetch records from UI side in async mode. Uses Load Request specification. Current user credentials applied automatically. Example: const result = await p.uiUtils.fetchRecords('user', {filter: 'active = true'});"
+  },
+  {
+    "type": "js_api",
+    "name": "p.uiUtils.createRecord",
+    "description": "Create record from UI side in async mode",
+    "syntax": "p.uiUtils.createRecord(model_alias, params)",
+    "example": "const result = await p.uiUtils.createRecord('user', {data: {attributes: {name: 'John'}}});",
+    "content": "JS API: p.uiUtils.createRecord(model_alias, params) - Create record from UI side in async mode. Uses Create Record specification. Current user credentials applied automatically. Example: const result = await p.uiUtils.createRecord('user', {data: {attributes: {name: 'John'}}});"
+  },
+  {
+    "type": "js_api",
+    "name": "p.uiUtils.updateRecord",
+    "description": "Update record from UI side in async mode",
+    "syntax": "p.uiUtils.updateRecord(model_alias, id, params)",
+    "example": "const result = await p.uiUtils.updateRecord('user', 123, {data: {attributes: {name: 'Jane'}}});",
+    "content": "JS API: p.uiUtils.updateRecord(model_alias, id, params) - Update record from UI side in async mode. Uses Update Record specification. Current user credentials applied automatically. Example: const result = await p.uiUtils.updateRecord('user', 123, {data: {attributes: {name: 'Jane'}}});"
+  },
+  {
+    "type": "js_api",
+    "name": "p.uiUtils.deleteRecord",
+    "description": "Delete record from UI side in async mode",
+    "syntax": "p.uiUtils.deleteRecord(model_alias, id)",
+    "example": "const result = await p.uiUtils.deleteRecord('user', 123);",
+    "content": "JS API: p.uiUtils.deleteRecord(model_alias, id) - Delete record from UI side in async mode. Uses Delete Record specification. Current user credentials applied automatically. Example: const result = await p.uiUtils.deleteRecord('user', 123);"
+  },
+  {
+    "type": "js_api",
+    "name": "model.fetchRecords",
+    "description": "Fetch records with callback approach",
+    "syntax": "model.fetchRecords(params).then(callback)",
+    "example": "p.record.getModel().fetchRecords({filter: 'active = true'}).then(result => { console.log(result); });",
+    "content": "JS API: model.fetchRecords(params).then(callback) - Fetch records with callback approach. Uses Load Request specification. Current user credentials applied automatically. Example: p.record.getModel().fetchRecords({filter: 'active = true'}).then(result => { console.log(result); });"
+  },
+  {
+    "type": "js_api",
+    "name": "model.setOptions",
+    "description": "Sets options for model operations, including permission checks",
+    "syntax": "model.setOptions(options)",
+    "example": "const model = (await p.getModel('site')).setOptions({ check_permission: { all: false } });",
+    "content": "JS API: model.setOptions(options) - Sets options for model operations. Common options include check_permission to disable permission checks. Example: const model = (await p.getModel('site')).setOptions({ check_permission: { all: false } });"
+  },
+  {
+    "type": "js_api",
+    "name": "p.getRequest",
+    "description": "Gets request parameters from current context",
+    "syntax": "p.getRequest()",
+    "example": "const params = p.getRequest(); let filter = lodash.get(params, 'filter');",
+    "content": "JS API: p.getRequest() - Gets request parameters from current context. Commonly used to extract filter, ui_params, and other request data. Example: const params = p.getRequest(); let filter = lodash.get(params, 'filter');"
+  },
+  {
+    "type": "js_api",
+    "name": "utils.getHostURL",
+    "description": "Gets the host URL for building links",
+    "syntax": "utils.getHostURL()",
+    "example": "let link = `${utils.getHostURL()}/handover_document/view/grid/_g_all?filter=${filter}`;",
+    "content": "JS API: utils.getHostURL() - Gets the host URL for building links to views and forms. Returns the base URL of the current instance. Example: let link = `${utils.getHostURL()}/handover_document/view/grid/_g_all?filter=${filter}`;"
+  },
+  {
+    "type": "js_api",
+    "name": "lodash.get",
+    "description": "Safely gets nested object properties",
+    "syntax": "lodash.get(object, path, defaultValue)",
+    "example": "let filter = lodash.get(params, 'filter', '');",
+    "content": "JS API: lodash.get(object, path, defaultValue) - Safely gets nested object properties. Part of lodash library available in CO2. Returns defaultValue if path doesn't exist. Example: let filter = lodash.get(params, 'filter', '');"
+  },
+  {
+    "type": "js_api",
+    "name": "scope.find",
+    "description": "Performs find operation on the current scope model",
+    "syntax": "scope.find(filter_object)",
+    "example": "await p.iterEach(scope.find({}).fields(['id', 'status', 'document_type']).raw(), (document) => {});",
+    "content": "JS API: scope.find(filter_object) - Performs find operation on the current scope model (the model the script is attached to). Similar to model.find() but uses the context model. Example: await p.iterEach(scope.find({}).fields(['id', 'status', 'document_type']).raw(), (document) => {});"
+  }
+]

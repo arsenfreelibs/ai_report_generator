@@ -1,0 +1,18 @@
+[
+  {
+    "type": "js_api",
+    "name": "p.getModel",
+    "description": "Gets a model by alias or ID",
+    "syntax": "p.getModel(model_alias_or_id)",
+    "example": "const model = await p.getModel('test_db_1');",
+    "content": "JS API: p.getModel(model_alias_or_id) - Gets a model by alias or ID. Example: const model = await p.getModel('test_db_1');"
+  },
+  {
+    "type": "js_api",
+    "name": "model.find",
+    "description": "Queries records from the model with a filter",
+    "syntax": "model.find(filter_object)",
+    "example": "const records = await model.find({status: 'active'});",
+    "content": "JS API: model.find(filter_object) - Queries records from the model with a filter. Example: const records = await model.find({status: 'active'});"
+  }
+]

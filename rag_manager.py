@@ -1,7 +1,7 @@
 import logging
 from typing import Dict, List
 from sentence_transformers import CrossEncoder
-from config import RERANKER_MODEL
+from config import RERANKER_MODEL, GDRIVE_FILE_ID, GDRIVE_CREDENTIALS_PATH
 from metadata_indexer import MetadataIndexer
 from js_api_indexer import JsApiIndexer
 from report_example_indexer import ReportExampleIndexer
@@ -11,10 +11,14 @@ logger = logging.getLogger(__name__)
 class RagManager:
     """Manages hybrid search across all indexers (metadata, JS API, and report examples)"""
 
-    def __init__(self, metadata_path: str, reranker_model_name: str = RERANKER_MODEL):
+    def __init__(self, metadata_path: str, reranker_model_name: str = RERANKER_MODEL, 
+                 gdrive_file_id: str = GDRIVE_FILE_ID, credentials_path: str = GDRIVE_CREDENTIALS_PATH):
         """Initialize the RAG manager"""
         self.metadata_indexer = MetadataIndexer(metadata_path)
-        self.js_api_indexer = JsApiIndexer()
+        self.js_api_indexer = JsApiIndexer(
+            gdrive_file_id=gdrive_file_id,
+            credentials_path=credentials_path
+        )
         self.report_example_indexer = ReportExampleIndexer()
         self.reranker_model_name = reranker_model_name
         self.reranker = None

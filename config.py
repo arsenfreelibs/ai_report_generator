@@ -21,6 +21,10 @@ MODEL_KEY = os.environ.get('MODEL_KEY', DEFAULT_MODEL)
 MODEL_PATH = os.environ.get('MODEL_PATH', MODEL_OPTIONS.get(MODEL_KEY, MODEL_OPTIONS[DEFAULT_MODEL]))
 METADATA_PATH = os.environ.get('METADATA_PATH', './cellcardcambodia_meta.json')
 
+# Google Drive Configuration
+GDRIVE_FILE_ID = None  # Set your Google Drive file ID here
+GDRIVE_CREDENTIALS_PATH = 'credentials.json'  # Path to your Google Drive credentials file
+
 # Print configuration for debugging
 def print_config():
     print(f"Using model: {MODEL_PATH}")
