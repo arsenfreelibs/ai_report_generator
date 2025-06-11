@@ -172,8 +172,7 @@ def generate_prompt():
                 'error': 'No query provided'
             }), 400
         
-        # Generate prompt using the existing method
-        prompt = js_generator.generate_prompt(query)
+        prompt = js_generator.generate_server_script_prompt(query)
         
         return jsonify({
             'status': 'success',

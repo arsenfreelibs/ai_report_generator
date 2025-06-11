@@ -290,8 +290,98 @@ CRITICAL REQUIREMENTS:
 
         return js_code
 
-    def generate_prompt(self, query: str) -> str:
-        """Process a natural language query and return JavaScript code"""
+    def _create_client_js_prompt(self, query: str, context: List[Dict], server_code: str) -> str:
+        """Create a prompt for client-side JS code generation with retrieved context"""
+        # Categorize context items
+        models_info = [item for item in context if item['type'] == 'model']
+        report_examples = [item for item in context if item['type'] == 'report_example']
+        
+        # Format report examples focusing on client scripts
+        client_examples_str = ""
+        if report_examples:
+            client_examples_str = "\n## Client-Side Report Examples:\n"
+            for example in report_examples:
+                client_examples_str += f"\n### Example: {example.get('name', 'Unknown')}\n"
+                client_examples_str += f"User Request: {example.get('user_request', '')[:200]}...\n"
+                
+                # Focus on client script patterns
+                client_script = example.get('client_script', '')
+                if client_script:
+                    client_lines = client_script.split('\n')[:30]  # First 30 lines for context
+                    client_examples_str += f"Client Script Pattern:\n```javascript\n"
+                    client_examples_str += "\n".join(client_lines)
+                    client_examples_str += "\n```\n"
+
+        # Format model information
+        models_str = "\n".join([
+            f"- Model: {item.get('name', '')} (alias: '{item.get('alias', '')}', id: {item.get('id', '')})"
+            for item in models_info
+        ])
+
+        # Construct the system prompt for client-side code
+        system_prompt = """You are an expert JavaScript client-side code generator for the SL2 system's amCharts visualizations. Your task is to convert natural language requests into client-side JavaScript code that creates interactive charts and visualizations.
+
+IMPORTANT GUIDELINES:
+1. Generate ONLY client-side JavaScript code for amCharts visualization
+2. The code should be a function that takes (chartdiv, scope) parameters
+3. Use scope.main to access data provided by the server script
+4. Always use amCharts libraries (am4core, am5, am5xy, am5percent, etc.)
+5. Create interactive tooltips with clickable links where appropriate
+6. Include proper event handlers for user interactions
+7. Use responsive design principles
+8. Return the chart/root object at the end of the function
+9. Write clean, commented code explaining key visualization logic
+10. Handle empty data gracefully
+11. Use appropriate chart types based on the request (pie, bar, line, etc.)
+12. Include animations and transitions for better UX
+
+Client-side code structure:
+- Should be a function(chartdiv, scope) { ... return chart/root; }
+- Access server data via scope.main
+- Create amCharts visualizations
+- Add interactivity and tooltips
+- Handle responsive behavior
+"""
+
+        # Construct the full prompt
+        prompt = f"""
+{system_prompt}
+
+## Available Models (for context):
+{models_str}
+
+{client_examples_str}
+
+## Server Code Context:
+The server script returns data in this structure:
+```javascript
+{server_code}
+```
+
+## User Request:
+{query}
+
+## Task:
+Generate client-side JavaScript code that creates an interactive amCharts visualization based on the user's request and the data structure provided by the server code.
+
+CRITICAL REQUIREMENTS:
+1. Create a function(chartdiv, scope) that returns the chart object
+2. Use scope.main to access the data from server
+3. Create appropriate amCharts visualization
+4. Add interactive tooltips with clickable links when relevant
+5. Use responsive design and proper styling
+6. Include animations and smooth transitions
+7. Handle edge cases (empty data, etc.)
+8. Follow amCharts best practices
+
+## Client-Side JavaScript Code:
+```javascript
+"""
+
+        return prompt
+
+    def generate_server_script_prompt(self, query: str) -> str:
+        """Process a natural language query and return server script prompt"""
         # Ensure query emphasizes returning records if not already mentioned
         enhanced_query = query
         if "return" not in query.lower() and "array" not in query.lower():
@@ -304,10 +394,10 @@ CRITICAL REQUIREMENTS:
         # Create JS generation prompt
         prompt = self._create_js_prompt(enhanced_query, context)
         print(f"prompt: {prompt}")   
-        return prompt 
+        return prompt
 
     def generate_js_code(self, query: str) -> Dict:
-        """Process a natural language query and return JavaScript code"""
+        """Process a natural language query and return both server and client JavaScript code"""
         # Ensure query emphasizes returning records if not already mentioned
         enhanced_query = query
         if "return" not in query.lower() and "array" not in query.lower():
@@ -317,27 +407,39 @@ CRITICAL REQUIREMENTS:
         context = self.rag_manager.hybrid_search(enhanced_query, k=25)
         print(f"Retrieved {len(context)} context items for query: '{enhanced_query}'")
 
-        # Create JS generation prompt
-        prompt = self._create_js_prompt(enhanced_query, context)
-        print(f"prompt: {prompt}")
+        # Create server-side JS generation prompt
+        server_prompt = self._create_js_prompt(enhanced_query, context)
+        print(f"Server prompt: {server_prompt}")
         
-        # Generate response from LLM
-        response_text = self.llm_processor.generate_response(prompt, max_tokens=1024, temperature=0.2)
+        # Generate server-side response from LLM
+        server_response_text = self.llm_processor.generate_response(server_prompt, max_tokens=1024, temperature=0.2)
 
-        # Extract JS from response
-        js_code = self._extract_js_from_response(response_text)
+        # Extract server JS from response
+        server_js_code = self._extract_js_from_response(server_response_text)
 
-        # Ensure code returns array of records if it doesn't already
-        js_code = self._ensure_code_returns_array(js_code)
+        # Ensure server code returns array of records if it doesn't already
+        server_js_code = self._ensure_code_returns_array(server_js_code)
 
-        # Return result
+        # Create client-side JS generation prompt
+        client_prompt = self._create_client_js_prompt(enhanced_query, context, server_js_code)
+        print(f"Client prompt: {client_prompt}")
+        
+        # Generate client-side response from LLM
+        client_response_text = self.llm_processor.generate_response(client_prompt, max_tokens=1024, temperature=0.2)
+
+        # Extract client JS from response
+        client_js_code = self._extract_js_from_response(client_response_text)
+
+        # Return combined result
         return {
             "natural_language_query": query,
-            "javascript_code": js_code,
+            "server_script": server_js_code,
+            "client_script": client_js_code,
             "context_used": {
                 "models": [item for item in context if item['type'] == 'model'][:3],
                 "fields": [item for item in context if item['type'] == 'field'][:5],
                 "api_methods": [item for item in context if item['type'] == 'js_api'][:5],
+                "report_examples": [item for item in context if item['type'] == 'report_example'][:3],
             }
         }
 
@@ -374,84 +476,19 @@ CRITICAL REQUIREMENTS:
 
         return basic_validation and returns_array
 
+    def validate_client_js(self, js_code: str) -> bool:
+        """Basic validation of client-side JavaScript code"""
+        # Check for amCharts patterns
+        has_amcharts = "am4core" in js_code or "am5" in js_code
+        has_function = "function" in js_code and "chartdiv" in js_code and "scope" in js_code
+        has_return = "return " in js_code
+        has_chart_creation = "create" in js_code or "Container" in js_code or "Chart" in js_code
+        
+        return has_amcharts and has_function and has_return and has_chart_creation
 
     def interactive_mode(self):
         """Interactive mode for testing JavaScript code generation"""
         print("Starting interactive JavaScript code generation mode")
         print("Enter your natural language request or type 'exit' to quit")
-        print("Note: Generated code will always return an array of records")
-
-        while True:
-            query = input("\nRequest: ")
-            if query.lower() in ['exit', 'quit', 'q']:
-                break
-
-            try:
-                result = self.generate_js_code(query)
-                js_code = result["javascript_code"]
-
-                print(f"\nGenerated JavaScript Code:\n")
-                print(js_code)
-
-                if not self.validate_js(js_code):
-                    print("\nWarning: The generated code may have issues with returning an array of records.")
-                    print("Make sure to add a proper return statement that returns the array.")
-                else:
-                    print("\n✓ Code successfully returns an array of records")
-
-                print("\nContext used:")
-                for model in result["context_used"]["models"]:
-                    print(f"- Model: {model.get('name', '')} ({model.get('alias', '')})")
-
-                print("\nKey API methods:")
-                for api in result["context_used"]["api_methods"]:
-                    print(f"- {api.get('name', '')}")
-
-            except Exception as e:
-                print(f"Error generating JavaScript code: {str(e)}")
-
-    def api_generate_js_code(self, request_data: Dict) -> Dict:
-        """API endpoint to generate JavaScript code from natural language query
-        
-        Args:
-            request_data: Dictionary containing at minimum a 'query' field
-            
-        Returns:
-            Dictionary with generated code and metadata
-        """
-        try:
-            # Extract the query from request data
-            query = request_data.get('query', '')
-            if not query:
-                return {'error': 'No query provided', 'status': 'error'}
-            
-            # Optional parameters
-            max_tokens = request_data.get('max_tokens', 1024)
-            temperature = request_data.get('temperature', 0.2)
-            
-            # Generate code
-            result = self.generate_js_code(query)
-            
-            # Return formatted response
-            return {
-                'status': 'success',
-                'query': query,
-                'code': result['javascript_code'],
-                'is_valid': self.validate_js(result['javascript_code']),
-                'context': {
-                    'models_used': [
-                        {'name': model.get('name', ''), 'alias': model.get('alias', '')} 
-                        for model in result['context_used']['models']
-                    ],
-                    'api_methods_used': [
-                        {'name': api.get('name', '')} 
-                        for api in result['context_used']['api_methods']
-                    ]
-                }
-            }
-        except Exception as e:
-            return {
-                'status': 'error',
-                'error': str(e),
-                'query': request_data.get('query', '')
+        print("Note: Generated code will include
             }
