@@ -102,9 +102,23 @@ Follow these steps to run the application on RunPod:
      }'
    ```
 
+   **Prompt Generation:**
+   ```bash
+   # Generate prompt locally
+   curl -X POST http://localhost:5000/generate-prompt \
+     -H "Content-Type: application/json" \
+     -d '{"query": "Find all active work orders from the last week"}'
+
+   # Generate prompt externally
+   curl -X POST http://69.30.85.116:22102/generate-prompt \
+     -H "Content-Type: application/json" \
+     -d '{"query": "Show me all projects with status completed in the last month"}'
+   ```
+
    The APIs return JSON responses containing:
    - **Generate endpoint**: Generated JavaScript code, validation status, context information
    - **Chat endpoint**: LLM response, conversation parameters, error handling
+   - **Generate-prompt endpoint**: Generated prompt with context, no code execution
 
 ## API Endpoints
 
@@ -132,6 +146,38 @@ Generate JavaScript code from natural language.
     "api_methods_used": [...]
   }
 }
+```
+
+### POST /generate-prompt
+Generate a contextual prompt from natural language query without executing code generation.
+
+**Request:**
+```json
+{
+  "query": "Find all active work orders from the last week"
+}
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "query": "Find all active work orders from the last week",
+  "prompt": "System prompt with available models, fields, and API methods..."
+}
+```
+
+**Examples:**
+```bash
+# Generate prompt for code generation
+curl -X POST http://localhost:5000/generate-prompt \
+  -H "Content-Type: application/json" \
+  -d '{"query": "Find all active work orders from the last week"}'
+
+# Generate prompt for a complex query
+curl -X POST http://localhost:5000/generate-prompt \
+  -H "Content-Type: application/json" \
+  -d '{"query": "Create a report showing projects by status with completion dates"}'
 ```
 
 ### POST /chat

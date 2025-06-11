@@ -149,6 +149,45 @@ def update_metadata():
             'action': request_data.get('action', '') if request_data else ''
         }), 500
 
+@app.route('/generate-prompt', methods=['POST'])
+def generate_prompt():
+    """API endpoint to generate a prompt from natural language query without full code generation"""
+    global js_generator
+    
+    # Initialize generator if not already done
+    if js_generator is None:
+        print("Initializing JS Code Generator...")
+        js_generator = JSCodeGenerator(metadata_path=METADATA_PATH, model_path=MODEL_PATH)
+        js_generator.initialize()
+    
+    try:
+        # Get request data
+        request_data = request.json
+        
+        # Extract query (required)
+        query = request_data.get('query', '')
+        if not query:
+            return jsonify({
+                'status': 'error',
+                'error': 'No query provided'
+            }), 400
+        
+        # Generate prompt using the existing method
+        prompt = js_generator.generate_prompt(query)
+        
+        return jsonify({
+            'status': 'success',
+            'query': query,
+            'prompt': prompt
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'error': str(e),
+            'query': request_data.get('query', '') if request_data else ''
+        }), 500
+
 def start_server(host='0.0.0.0', port=5000, debug=False):
     """Start the API server"""
     print_config()
