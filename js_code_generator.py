@@ -318,6 +318,7 @@ SERVER_SCRIPT:
 // Server script code here
 ```
 """
+        print(f"Generated prompt: {prompt}")
         return prompt
 
     def _extract_client_server_scripts(self, response_text: str) -> Dict[str, str]:
@@ -513,6 +514,7 @@ SERVER_SCRIPT:
             
             # Generate response from LLM
             response_text = self.llm_processor.generate_response(prompt, max_tokens=max_tokens, temperature=temperature)
+            print(f"LLM Response: {response_text}")
 
             # Extract client and server scripts from response
             scripts = self._extract_client_server_scripts(response_text)
