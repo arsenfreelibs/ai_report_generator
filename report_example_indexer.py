@@ -5,14 +5,14 @@ from typing import Dict, List
 from langchain_community.vectorstores import FAISS
 from langchain.embeddings.sentence_transformer import SentenceTransformerEmbeddings
 from rank_bm25 import BM25Okapi
-from config import EMBEDDING_MODEL
+from config import EMBEDDING_MODEL, REPORT_EXAMPLES_KNOWLEDGE_PATH
 
 logger = logging.getLogger(__name__)
 
 class ReportExampleIndexer:
     """Handles indexing and retrieval of SL2 report examples"""
 
-    def __init__(self, knowledge_path: str = "knowledge/report_examples", embedding_model_name: str = EMBEDDING_MODEL):
+    def __init__(self, knowledge_path: str = REPORT_EXAMPLES_KNOWLEDGE_PATH, embedding_model_name: str = EMBEDDING_MODEL):
         """Initialize the report example indexer"""
         self.knowledge_path = knowledge_path
         self.embedding_model_name = embedding_model_name

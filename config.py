@@ -26,6 +26,7 @@ GDRIVE_FILE_ID = None  # Set your Google Drive file ID here
 GDRIVE_CREDENTIALS_PATH = 'credentials.json'
 
 JS_API_FALLBACK_FILE = 'co2_js_api.json'
+REPORT_EXAMPLES_KNOWLEDGE_PATH = 'knowledge/report_examples'
 
 # Print configuration for debugging
 def print_config():
