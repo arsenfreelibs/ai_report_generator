@@ -91,14 +91,14 @@ class JSCodeGenerator:
                 
                 if server_script:
                     # Extract key patterns from server script
-                    server_lines = server_script.split('\n')[:15]  # First 15 lines
+                    server_lines = server_script.split('\n')  # First 15 lines
                     report_examples_str += f"Server Script Pattern:\n```javascript\n"
                     report_examples_str += "\n".join(server_lines)
                     report_examples_str += "\n```\n"
                 
                 if client_script:
                     # Extract key patterns from client script
-                    client_lines = client_script.split('\n')[:10]  # First 10 lines
+                    client_lines = client_script.split('\n')
                     report_examples_str += f"Client Script Pattern:\n```javascript\n"
                     report_examples_str += "\n".join(client_lines)
                     report_examples_str += "\n```\n"
@@ -150,98 +150,7 @@ class JSCodeGenerator:
         if array_string_examples:
             array_string_examples_str = "\n## Critical Examples for array_string Fields:\n"
             for example in array_string_examples:
-                array_string_examples_str += f"- For model '{example['model_alias']}', field '{example['field_alias']}': {example['example']}\n"
-
-        # JavaScript code examples for common operations
-        js_examples = """
-JavaScript Code Examples for SL2 System:
-
-1. Getting a model and finding records (returns array of records):
-```javascript
-// Get model by its alias (not display name)
-const model = await p.getModel('test_db_1'); // Use 'test_db_1', not 'Test DB 1'
-
-// Find records with a filter - returns array of records
-// Use field aliases in queries, not display names
-const records = await model.find({status: 'active'}); // Use 'status', not 'Status'
-return records; // Return the array of records
-
-// For array_string fields, always use the KEY value, not the display value:
-// If options are {"values":{"New":"New","Open":"Open"}} - use 'New', not the display value
-const results = await model.find({status: 'New'});  // CORRECT - Using the key value
-// NOT: const results = await model.find({status: 'New Status'}); // WRONG - Using display value
-
-// Find with multiple conditions - returns array of records
-const results = await model.find({
-  field_alias1: 'value1', // Always use field aliases
-  field_alias2: {'>': 100}
-}).order({created_at: 'desc'});
-return results; // Return the array of records
-```
-
-2. Finding records from the past week:
-```javascript
-// Get records from the past week
-const today = new Date();
-const lastWeek = new Date(today);
-lastWeek.setDate(today.getDate() - 7);
-
-const model = await p.getModel('model_alias');
-const records = await model.find({
-  created_at: {'>=': lastWeek.toISOString()}
-});
-return records;
-```
-
-3. Limiting number of records returned:
-```javascript
-// Get only first N records
-const model = await p.getModel('model_alias');
-const records = await model.find({status: 'active'}).limit(15);
-return records;
-```
-
-4. Advanced querying with fetchRecords (returns array of records):
-```javascript
-// Get records using fetchRecords - extract and return the array from the result
-// Always use the model alias
-const result = await p.uiUtils.fetchRecords('test_db_1', {
-  filter: 'status = "active" AND created_at > "2023-01-01"', // Use field aliases
-  fields: {id: 'id', name: 'name'},
-  page: {size: 15} // Limit to 15 records
-});
-return result.data; // Return the array of records
-```
-
-5. Processing records before returning:
-```javascript
-// Query, process, and return records
-const records = await model.find({status: 'active'});
-// Process records if needed
-const processedRecords = records.map(record => {
-  return {
-    id: record.id,
-    status: record.status, // Use field aliases when referencing fields
-    // Add any other fields or transformations
-  };
-});
-return processedRecords; // Return the processed array of records
-```
-
-6. Error handling pattern:
-```javascript
-try {
-  // Always use model aliases
-  const model = await p.getModel('work_order');
-  // Always use field aliases in queries
-  const records = await model.find({active: true});
-  return records; // Return the array of records
-} catch (error) {
-  console.error('Error:', error);
-  return []; // Return empty array in case of error
-}
-```
-"""
+                array_string_examples_str += f"- For model '{example['model_alias']}', field '{example['field_alias']}': {example['example']}\n"        
 
         # Construct the system prompt with stronger emphasis on array_string fields
         system_prompt = """You are an expert JavaScript code generator for the SL2 system. Your task is to convert natural language requests into precise JavaScript code that uses SL2's API.
@@ -282,8 +191,6 @@ Follow these guidelines:
 {api_str}
 
 {report_examples_str}
-
-{js_examples}
 
 ## User Request:
 {query}
@@ -340,10 +247,6 @@ CRITICAL REQUIREMENTS:
 
     def _ensure_code_returns_array(self, js_code: str) -> str:
         """Ensure the JavaScript code returns an array of records and uses aliases"""
-        # Add a reminder comment about using aliases if not present
-        if not "// Use model aliases" in js_code and not "// Always use" in js_code:
-            alias_reminder = "\n// REMEMBER: Always use model and field aliases (not display names) in SL2 API calls\n"
-            js_code = alias_reminder + js_code
 
         # Check if code already has a return statement
         if "return " in js_code:
