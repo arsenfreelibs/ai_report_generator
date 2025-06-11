@@ -4,7 +4,7 @@
 mkdir -p ~/workspace/ssh
 
 # Проверяем, существуют ли ключи в ~/workspace/ssh
-if [ ! -f ~/workspace/ssh/gitlab_key ] || [ ! -f ~/workspace/ssh/gitlab_key.pub ]; then
+if [ ! -f /workspace/.ssh/gitlab_key ] || [ ! -f /workspace/.ssh/gitlab_key.pub ]; then
     echo "Ключи не найдены в ~/workspace/ssh, генерируем новые..."
     ssh-keygen -t ed25519 -C "demo@demo.com" -f ~/workspace/ssh/gitlab_key -N ""
 else
@@ -19,7 +19,7 @@ cat > ~/.ssh/config << EOF
 Host github.com
     HostName github.com
     User git
-    IdentityFile ~/workspace/ssh/gitlab_key
+    IdentityFile ~/.ssh/gitlab_key
     IdentitiesOnly yes
 EOF
 
@@ -27,12 +27,12 @@ EOF
 chmod 600 ~/.ssh/config
 
 # Устанавливаем права доступа для ключей в ~/workspace/ssh
-chmod 600 ~/workspace/ssh/gitlab_key
-chmod 644 ~/workspace/ssh/gitlab_key.pub
+chmod 600 /workspace/.ssh/gitlab_key
+chmod 644 /workspace/.ssh/gitlab_key.pub
 
 # Copy keys to ~/.ssh directory
-cp ~/workspace/ssh/gitlab_key ~/.ssh/
-cp ~/workspace/ssh/gitlab_key.pub ~/.ssh/
+cp /workspace/.ssh/gitlab_key ~/.ssh/
+cp /workspace/.ssh/gitlab_key.pub ~/.ssh/
 chmod 600 ~/.ssh/gitlab_key
 chmod 644 ~/.ssh/gitlab_key.pub
 
