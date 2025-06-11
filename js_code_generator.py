@@ -302,6 +302,8 @@ CRITICAL REQUIREMENTS:
 ## JavaScript Code:
 ```javascript
 """
+
+        print(f"Generated prompt: {prompt}")
         return prompt
 
     def _extract_js_from_response(self, response_text: str) -> str:
