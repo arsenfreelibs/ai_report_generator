@@ -174,6 +174,30 @@ Follow these guidelines:
 11. Make sure your code returns an array of records at the end
 12. Return only the JavaScript code, with no additional explanations
 13. Use the provided report examples as reference patterns when applicable
+
+## COMMON MISTAKES TO AVOID:
+
+INCORRECT EXAMPLE - DO NOT DO THIS:
+```javascript
+// WRONG: Using non-existent values for array_string fields
+const notClosedWorkOrders = await workOrderModel.find({ status: 'not_closed' }).raw();
+// This is WRONG because 'not_closed' is not a valid key in the status field
+```
+
+CORRECT APPROACH FOR "NOT CLOSED" STATUS:
+```javascript
+// RIGHT: Use $in operator with all valid status keys except 'closed'
+const notClosedWorkOrders = await workOrderModel.find({ 
+  status: { 
+    $in: ['pending_assignment', 'assigned', 'in_progress', 'pause', 'completed', 'rejected', 'db_verification', 'for_closure', 'canceled', 'pause_requested'] 
+  } 
+}).raw();
+
+// OR use $ne (not equal) to exclude 'closed' status
+const notClosedWorkOrders = await workOrderModel.find({ status: { $ne: 'closed' } }).raw();
+```
+
+Remember: Always check the "Possible values" for array_string fields and use ONLY those exact keys!
 """
 
         # Construct the full prompt
@@ -205,6 +229,7 @@ CRITICAL REQUIREMENTS:
 4. For array_string fields, ALWAYS use the EXACT key values (e.g., 'New', 'Open'), NOT the display values
 5. If filtering for "active" status, check the available values first and use the appropriate key
 6. Use the report examples as reference patterns when applicable
+7. DO NOT invent or guess field values - only use the exact keys provided in the field definitions
 
 ## JavaScript Code:
 ```javascript
