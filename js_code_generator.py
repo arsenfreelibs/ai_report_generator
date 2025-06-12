@@ -192,6 +192,11 @@ Follow these guidelines:
 ## COMMON MISTAKES TO AVOID:
 
 INCORRECT EXAMPLE - DO NOT DO THIS:
+<model_and_field_info>
+Fields for model Work Order (alias: 'work_order'):
+Status (alias: 'status', type: array_string)
+Possible values: {'pending_assignment': 'Pending Assignment', 'assigned': 'Assigned', 'in_progress': 'In Progress', 'pause': 'Pause', 'completed': 'Completed', 'rejected': 'Rejected', 'db_verification': 'DB Verification', 'for_closure': 'For Closure', 'closed': 'Closed', 'canceled': 'Canceled', 'pause_requested': 'Pause Requested'}
+</model_and_field_info>
 ```javascript
 // WRONG: Using non-existent values for array_string fields
 const notClosedWorkOrders = await workOrderModel.find({ status: 'not_closed' }).raw();
@@ -260,7 +265,17 @@ CRITICAL REQUIREMENTS:
         match = re.search(js_pattern, response_text)
 
         if match:
-            return match.group(1).strip()
+            code = match.group(1).strip()
+            
+            # Check if code already has async function wrapper
+            if code.startswith('async function(scope)'):
+                return code
+            
+            # If not wrapped in function, wrap it
+            if not code.startswith('function') and not code.startswith('async function'):
+                code = f"async function(scope) {{\n{code}\n}}"
+            
+            return code
 
         # If no code found with pattern, look for anything that looks like JS code
         # This is a fallback in case the model doesn't format its response with code blocks
@@ -274,29 +289,43 @@ CRITICAL REQUIREMENTS:
             code_section = response_text[start_idx:]
 
             # Look for clear end markers
-            end_markers = ["## ", "Note:", "Explanation:", "This code"]
+            end_markers = ["## ", "Note:", "Explanation:", "This code", "```"]
             for marker in end_markers:
                 marker_idx = code_section.find(marker)
                 if marker_idx > 0:
                     code_section = code_section[:marker_idx]
 
-            return code_section.strip()
+            code = code_section.strip()
+            
+            # Check if code already has async function wrapper
+            if code.startswith('async function(scope)'):
+                return code
+            
+            # If not wrapped in function, wrap it
+            if not code.startswith('function') and not code.startswith('async function'):
+                code = f"async function(scope) {{\n{code}\n}}"
+            
+            return code
 
-        # If still no code found, return the whole response
-        return response_text.strip()
+        # If still no code found, return the whole response wrapped in function
+        code = response_text.strip()
+        if not code.startswith('function') and not code.startswith('async function'):
+            code = f"async function(scope) {{\n{code}\n}}"
+        
+        return code
 
     def _ensure_code_returns_array(self, js_code: str) -> str:
-        """Ensure the JavaScript code returns an array of records and uses aliases"""
-
-        # Check if code already has a return statement
-        if "return " in js_code:
+        """Ensure the JavaScript code returns an object with main property containing records array"""
+        
+        # Check if code already has proper return statement with main property
+        if "return {" in js_code and "main:" in js_code:
             return js_code
 
         # Look for common patterns that should return records
         result_patterns = [
-            r"const\s+(\w+)\s*=\s*await.*?model\.find\(.*?\);",
+            r"const\s+(\w+)\s*=\s*await.*?model\.find\(.*?\)\.raw\(\);",
             r"const\s+(\w+)\s*=\s*await.*?p\.uiUtils\.fetchRecords\(.*?\);",
-            r"let\s+(\w+)\s*=\s*await.*?model\.find\(.*?\);",
+            r"let\s+(\w+)\s*=\s*await.*?model\.find\(.*?\)\.raw\(\);",
             r"let\s+(\w+)\s*=\s*await.*?p\.uiUtils\.fetchRecords\(.*?\);"
         ]
 
@@ -307,26 +336,20 @@ CRITICAL REQUIREMENTS:
 
                 # Handle fetchRecords which returns an object with data property
                 if "fetchRecords" in match.group(0):
-                    # Check if code already accesses .data property
-                    if f"{var_name}.data" in js_code:
-                        if not js_code.strip().endswith(';'):
-                            js_code += ";\n"
-                        js_code += f"\n// Return the array of records\nreturn {var_name}.data;";
-                    else:
-                        if not js_code.strip().endswith(';'):
-                            js_code += ";\n"
-                        js_code += f"\n// Return the array of records\nreturn {var_name}.data;";
+                    if not js_code.strip().endswith(';'):
+                        js_code += ";\n"
+                    js_code += f"\n  return {{\n    main: {var_name}.data\n  }};"
                 else:
                     if not js_code.strip().endswith(';'):
                         js_code += ";\n"
-                    js_code += f"\n// Return the array of records\nreturn {var_name};"
+                    js_code += f"\n  return {{\n    main: {var_name}\n  }};"
 
                 return js_code
 
-        # If no pattern matched, add a general comment about returning records
+        # If no pattern matched, add a general return statement
         if not js_code.strip().endswith(';'):
             js_code += ";\n"
-        js_code += "\n// IMPORTANT: Remember to return the array of records at the end of your function"
+        js_code += "\n  // IMPORTANT: Remember to return { main: records } where records is an array\n  return {\n    main: []\n  };"
 
         return js_code
 
@@ -347,7 +370,7 @@ CRITICAL REQUIREMENTS:
                 # Focus on client script patterns
                 client_script = example.get('client_script', '')
                 if client_script:
-                    client_lines = client_script.split('\n')[:30]  # First 30 lines for context
+                    client_lines = client_script.split('\n')
                     client_examples_str += f"Client Script Pattern:\n```javascript\n"
                     client_examples_str += "\n".join(client_lines)
                     client_examples_str += "\n```\n"
