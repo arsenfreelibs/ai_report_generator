@@ -237,14 +237,14 @@ Remember: Always check the "Possible values" for array_string fields and use ONL
 Generate JavaScript code that fulfills the user's request using the available models, fields, and API methods.
 
 CRITICAL REQUIREMENTS:
-1. Your server script MUST follow the required structure: async function(scope) { ... return { main: records }; }
+1. Your server script MUST follow the required structure: async function(scope) {{ ... return {{ main: records }}; }}
 2. ALWAYS use model aliases (e.g., 'test_db_1') instead of display names ('Test DB 1')
 3. ALWAYS use field aliases (e.g., 'status') instead of display names ('Status')
 4. For array_string fields, ALWAYS use the EXACT key values (e.g., 'New', 'Open'), NOT the display values
 5. If filtering for "active" status, check the available values first and use the appropriate key
 6. Use the report examples as reference patterns when applicable
 7. DO NOT invent or guess field values - only use the exact keys provided in the field definitions
-8. Return data in the format { main: records } where records is an array
+8. Return data in the format {{ main: records }} where records is an array
 
 ## JavaScript Code:
 ```javascript
