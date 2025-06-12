@@ -462,7 +462,7 @@ CRITICAL REQUIREMENTS:
         # Ensure query emphasizes returning records if not already mentioned
         enhanced_query = query
         if "return" not in query.lower() and "array" not in query.lower():
-            enhanced_query = f"{query} and return the array of records"
+            enhanced_query = f"{query}"
 
         # Retrieve relevant context
         context = self.rag_manager.hybrid_search(enhanced_query, k=15)
@@ -478,7 +478,7 @@ CRITICAL REQUIREMENTS:
         # Ensure query emphasizes returning records if not already mentioned
         enhanced_query = query
         if "return" not in query.lower() and "array" not in query.lower():
-            enhanced_query = f"{query} and return the array of records"
+            enhanced_query = f"{query}"
 
         # Retrieve relevant context using RagManager
         context = self.rag_manager.hybrid_search(enhanced_query, k=25)
@@ -489,7 +489,7 @@ CRITICAL REQUIREMENTS:
         # print(f"Server prompt: {server_prompt}")
         
         # Generate server-side response from LLM
-        server_response_text = self.llm_processor.generate_response(server_prompt, max_tokens=1024, temperature=0.2)
+        server_response_text = self.llm_processor.generate_response(server_prompt, max_tokens=2048, temperature=0.2)
         print(f"Server response: {server_response_text}")
 
         # Extract server JS from response
@@ -503,7 +503,7 @@ CRITICAL REQUIREMENTS:
         # print(f"Client prompt: {client_prompt}")
         
         # Generate client-side response from LLM
-        client_response_text = self.llm_processor.generate_response(client_prompt, max_tokens=1024, temperature=0.2)
+        client_response_text = self.llm_processor.generate_response(client_prompt, max_tokens=2048, temperature=0.2)
         print(f"Client response: {client_response_text}")
 
         # Extract client JS from response
@@ -615,8 +615,7 @@ CRITICAL REQUIREMENTS:
             if not query:
                 return {'error': 'No query provided', 'status': 'error'}
             
-            # Optional parameters (for future use)
-            max_tokens = request_data.get('max_tokens', 1024)
+            max_tokens = request_data.get('max_tokens', 2048)
             temperature = request_data.get('temperature', 0.2)
             
             # Generate code using the main method
