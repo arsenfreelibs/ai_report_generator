@@ -410,13 +410,16 @@ IMPORTANT GUIDELINES:
 10. Handle empty data gracefully
 11. Use appropriate chart types based on the request (pie, bar, line, etc.)
 12. Include animations and transitions for better UX
+13. KEEP THE CODE AS SIMPLE AS POSSIBLE - generate minimal code with only essential features
+14. Avoid complex configurations unless specifically requested
+15. Focus on basic chart creation with data binding
 
 Client-side code structure:
 - Should be a function(chartdiv, scope) { ... return chart/root; }
 - Access server data via scope.main
-- Create amCharts visualizations
-- Add interactivity and tooltips
-- Handle responsive behavior
+- Create amCharts visualizations with minimal configuration
+- Add only essential interactivity
+- Keep code concise and readable
 """
 
         # Construct the full prompt
