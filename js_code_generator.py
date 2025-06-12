@@ -160,6 +160,20 @@ IMPORTANT:
 - ALWAYS use model and field aliases in your code, NOT their display names.
 - For array_string fields, you MUST use the KEY values in the filter (e.g., 'New', 'Open'), NOT the display values.
 
+## REQUIRED SERVER SCRIPT STRUCTURE:
+Your server script MUST follow this exact structure:
+
+```javascript
+async function(scope) {
+  // Your data retrieval logic here
+  const records = await p.iterMap(scope.find({}), record => record.attributes);
+
+  return {
+    main: records
+  };
+}
+```
+
 Follow these guidelines:
 1. Only use the provided models, fields, and API methods in your code
 2. Always refer to models and fields by their aliases (e.g., use 'test_db_1' not 'Test DB 1')
@@ -171,7 +185,7 @@ Follow these guidelines:
 8. Write async/await code where appropriate
 9. Include error handling with try/catch blocks for robust code
 10. Add helpful comments to explain your code
-11. Make sure your code returns an array of records at the end
+11. Make sure your code returns an object with 'main' property containing the records array
 12. Return only the JavaScript code, with no additional explanations
 13. Use the provided report examples as reference patterns when applicable
 
@@ -223,13 +237,14 @@ Remember: Always check the "Possible values" for array_string fields and use ONL
 Generate JavaScript code that fulfills the user's request using the available models, fields, and API methods.
 
 CRITICAL REQUIREMENTS:
-1. Your code MUST return an array of records at the end
+1. Your server script MUST follow the required structure: async function(scope) { ... return { main: records }; }
 2. ALWAYS use model aliases (e.g., 'test_db_1') instead of display names ('Test DB 1')
 3. ALWAYS use field aliases (e.g., 'status') instead of display names ('Status')
 4. For array_string fields, ALWAYS use the EXACT key values (e.g., 'New', 'Open'), NOT the display values
 5. If filtering for "active" status, check the available values first and use the appropriate key
 6. Use the report examples as reference patterns when applicable
 7. DO NOT invent or guess field values - only use the exact keys provided in the field definitions
+8. Return data in the format { main: records } where records is an array
 
 ## JavaScript Code:
 ```javascript
@@ -346,6 +361,19 @@ CRITICAL REQUIREMENTS:
         # Construct the system prompt for client-side code
         system_prompt = """You are an expert JavaScript client-side code generator for the SL2 system's amCharts visualizations. Your task is to convert natural language requests into client-side JavaScript code that creates interactive charts and visualizations.
 
+## REQUIRED CLIENT SCRIPT STRUCTURE:
+Your client script MUST follow this exact structure:
+
+```javascript
+function(chartdiv, scope) {
+  const chart = am4core.create(chartdiv, am4charts.XYChart);
+
+  chart.data = scope.main;
+
+  return chart;
+}
+```
+
 IMPORTANT GUIDELINES:
 1. Generate ONLY client-side JavaScript code for amCharts visualization
 2. The code should be a function that takes (chartdiv, scope) parameters
@@ -390,7 +418,7 @@ The server script returns data in this structure:
 Generate client-side JavaScript code that creates an interactive amCharts visualization based on the user's request and the data structure provided by the server code.
 
 CRITICAL REQUIREMENTS:
-1. Create a function(chartdiv, scope) that returns the chart object
+1. Your client script MUST follow the required structure: function(chartdiv, scope) { ... return chart; }
 2. Use scope.main to access the data from server
 3. Create appropriate amCharts visualization
 4. Add interactive tooltips with clickable links when relevant
