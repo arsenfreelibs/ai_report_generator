@@ -418,7 +418,7 @@ The server script returns data in this structure:
 Generate client-side JavaScript code that creates an interactive amCharts visualization based on the user's request and the data structure provided by the server code.
 
 CRITICAL REQUIREMENTS:
-1. Your client script MUST follow the required structure: function(chartdiv, scope) { ... return chart; }
+1. Your client script MUST follow the required structure: function(chartdiv, scope) {{ ... return chart; }}
 2. Use scope.main to access the data from server
 3. Create appropriate amCharts visualization
 4. Add interactive tooltips with clickable links when relevant
