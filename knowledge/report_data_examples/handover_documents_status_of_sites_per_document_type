@@ -1,0 +1,77 @@
+<user_request>
+Generate an interactive amCharts XY column chart showing counts of 'handover_document' records grouped by 'status' and split by 'document_type', with clickable tooltips linking to filtered record views.
+</user_request>
+
+<description>
+Title: Handover Document Status Data Aggregator
+
+Description:
+
+This server script aggregates handover_document records by status and document_type combinations, generating chart-ready data with clickable filter URLs. The script processes each document record and groups them by their status and document_type values, counting occurrences of each combination.
+
+Key functionality:
+
+- Retrieves handover_document records with fields: id, status, document_type
+- Groups records by status and document_type combinations
+- Counts occurrences for each unique combination
+- Generates filtered URLs for each data point that link to grid views with appropriate filters
+- Handles null document_type values with special URL construction
+- Uses permission bypass via setOptions({ check_permission: { all: false }})
+- Processes existing filter parameters from request and incorporates them into generated URLs
+
+The script uses p.iterEach to efficiently process model records and builds compound filter URLs that respect existing filters while adding status and document_type constraints. URL construction handles both cases where document_type has a value and where it's null, generating appropriate SQL-like filter strings.
+
+Data output format: { type, status, count, url } where:
+- type: document_type value (can be null)
+- status: document status value
+- count: number of records matching the combination
+- url: filtered grid view URL for the specific combination
+
+This report relies on:
+- Models: handover_document
+- Fields: status, document_type, id
+- URL building with compound filter logic
+- Null handling for document_type field
+
+The aggregated data is suitable for feeding into chart visualization components or dashboard widgets that need grouped document counts with drill-down capabilities.
+</description>
+
+<server_script>
+async function (scope) {
+  const params = p.getRequest();
+  
+  let filter = lodash.get(params, 'filter');
+  filter = filter ? filter : '';
+  
+  let link = `${utils.getHostURL()}/handover_document/view/grid/_g_all?filter=${filter}`;
+  
+  let chartData = [];
+
+  // Retrieve Handover Document data
+  const document_model = (await p.getModel("handover_document")).setOptions({ check_permission: { all: false }});
+  await p.iterEach(
+    scope.find({}).fields(["id", "status", "document_type"]).raw(),
+    (document) => {
+      const { status, document_type } = document;
+      let chartItem = chartData.find(
+        (item) => item.status === status && item.type === document_type
+      );
+      if (chartItem) {
+        chartItem.count += 1;
+      } else {
+        const url = document_type ? `${link.includes('status') ? link : filter === '' ? link + "\`status\`='" + status + "'": link + " AND \`status\`='" + status + "'"} ${link.includes('document_type') ? '' : "AND \`document_type\`='" + document_type + "'"}`: `${link.includes('status') ? link : filter === '' ? link + "\`status\`='" + status + "'": link + " AND \`status\`='" + status + "'"} ${link.includes('document_type') ? '' : "AND \`document_type\` IS NULL" }`;
+        chartData.push({
+          type: document_type,
+          status,
+          count: 1,
+          url
+        });
+      }
+    }
+  );
+
+  return {
+    main: chartData
+  };
+}
+</server_script>

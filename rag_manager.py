@@ -6,11 +6,12 @@ from metadata_indexer import MetadataIndexer
 from js_api_indexer import JsApiIndexer
 from report_example_indexer import ReportExampleIndexer
 from report_data_example_indexer import ReportDataExampleIndexer
+from report_chart_example_indexer import ReportChartExampleIndexer
 
 logger = logging.getLogger(__name__)
 
 class RagManager:
-    """Manages hybrid search across all indexers (metadata, JS API, report examples, and report data examples)"""
+    """Manages hybrid search across all indexers (metadata, JS API, report examples, report data examples, and chart examples)"""
 
     def __init__(self, metadata_path: str, reranker_model_name: str = RERANKER_MODEL, 
                  gdrive_file_id: str = GDRIVE_FILE_ID, credentials_path: str = GDRIVE_CREDENTIALS_PATH):
@@ -22,6 +23,7 @@ class RagManager:
         )
         self.report_example_indexer = ReportExampleIndexer()
         self.report_data_example_indexer = ReportDataExampleIndexer()
+        self.report_chart_example_indexer = ReportChartExampleIndexer()
         self.reranker_model_name = reranker_model_name
         self.reranker = None
 
@@ -32,6 +34,7 @@ class RagManager:
         self.js_api_indexer.create_indexes()
         self.report_example_indexer.create_indexes()
         self.report_data_example_indexer.create_indexes()
+        self.report_chart_example_indexer.create_indexes()
         
         # Initialize reranker
         self.reranker = CrossEncoder(self.reranker_model_name)
@@ -46,11 +49,12 @@ class RagManager:
         if not hasattr(self.metadata_indexer, 'vector_store') or self.metadata_indexer.vector_store is None:
             self.initialize()
 
-        # Split k between models, JS API, report examples, and report data examples
-        model_k = int(k * 0.3)  # 30% for models
-        js_api_k = int(k * 0.25)  # 25% for JS API
-        report_k = int(k * 0.2)   # 20% for report examples (client-focused)
-        report_data_k = int(k * 0.25)  # 25% for report data examples (server-focused)
+        # Split k between models, JS API, report examples, report data examples, and chart examples
+        model_k = int(k * 0.25)  # 25% for models
+        js_api_k = int(k * 0.2)   # 20% for JS API
+        report_k = int(k * 0.15)  # 15% for report examples
+        report_data_k = int(k * 0.2)  # 20% for report data examples (server-focused)
+        chart_k = int(k * 0.2)    # 20% for chart examples (client-focused)
 
         # Search models
         model_results = self.metadata_indexer.search(query, k=model_k)
@@ -60,7 +64,7 @@ class RagManager:
         js_api_results = self.js_api_indexer.search(query, k=js_api_k)
         print(f"JS API search returned {len(js_api_results)} documents")
 
-        # Search report examples (for client scripts)
+        # Search report examples
         report_results = self.report_example_indexer.search(query, k=report_k)
         print(f"Report example search returned {len(report_results)} documents")
 
@@ -68,8 +72,12 @@ class RagManager:
         report_data_results = self.report_data_example_indexer.search(query, k=report_data_k)
         print(f"Report data example search returned {len(report_data_results)} documents")
 
+        # Search chart examples (for client scripts)
+        chart_results = self.report_chart_example_indexer.search(query, k=chart_k)
+        print(f"Chart example search returned {len(chart_results)} documents")
+
         # Combine results
-        combined_docs = model_results + js_api_results + report_results + report_data_results
+        combined_docs = model_results + js_api_results + report_results + report_data_results + chart_results
 
         print(f"Combined search returned {len(combined_docs)} unique documents")
         return combined_docs
@@ -89,6 +97,10 @@ class RagManager:
     def get_report_data_examples_context(self, query: str, k: int = 5) -> List[Dict]:
         """Get only report data example-related context"""
         return self.report_data_example_indexer.search(query, k=k)
+
+    def get_chart_examples_context(self, query: str, k: int = 5) -> List[Dict]:
+        """Get only chart example-related context"""
+        return self.report_chart_example_indexer.search(query, k=k)
 
     def update_metadata(self, new_metadata: Dict, action: str = 'replace') -> Dict:
         """Update metadata and rebuild indexes
@@ -118,5 +130,6 @@ class RagManager:
         self.js_api_indexer.create_indexes()
         self.report_example_indexer.create_indexes()
         self.report_data_example_indexer.create_indexes()
+        self.report_chart_example_indexer.create_indexes()
         
         logger.info("All indexes refreshed")

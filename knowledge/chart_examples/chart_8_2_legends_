@@ -1,0 +1,236 @@
+<user_request>
+Create a horizontal stacked bar chart that displays site availability metrics showing both "Site Down" and "Site Available" hours for multiple sites. Include a legend to identify the different data series, implement province-based filtering with a dropdown menu, and display percentage values on each bar segment. The chart should handle large datasets with automatic scrolling when there are more than 7 sites, and use color coding (red for downtime, green for availability) to make the data easily interpretable.
+</user_request>
+
+<description>
+This example demonstrates a sophisticated stacked horizontal bar chart with advanced filtering and legend functionality using amCharts 5. Key features include:
+
+- **Stacked Bar Chart**: Horizontal bars showing site downtime vs availability as percentages
+- **Interactive Legend**: Legend at the top that identifies data series and allows toggling visibility
+- **Province Filtering**: Custom dropdown menu positioned in the top-right corner for filtering sites by province
+- **Color Coding**: Red (#ea9999) for site downtime and green (#b6d7a8) for site availability
+- **Percentage Display**: Shows percentage values on each bar segment with proper formatting
+- **Auto-scrolling**: Implements vertical scrollbar when dataset contains more than 7 sites
+- **Custom Tooltips**: Displays site name, metric type, and actual hours on hover
+- **Responsive Design**: Handles long site names with text truncation and proper sizing
+- **Data Processing**: Filters and updates chart data based on province selection
+- **Custom Styling**: Reduced grid opacity and custom theme for cleaner appearance
+- **Animation**: Smooth entrance animations and data updates
+
+The chart includes sample data for 11 sites across different provinces (A, A1-A10), with each site showing hours of downtime vs availability. The filtering system allows users to select specific provinces to focus on relevant data subsets. The scrollable interface ensures usability even with large datasets while maintaining visual clarity through proper spacing and typography.
+</description>
+
+<client_script>
+function(chartdiv, scope) {
+  const root = am5.Root.new(chartdiv);
+    
+  
+  var myTheme = am5.Theme.new(root);
+  
+  myTheme.rule("Grid", ["base"]).setAll({
+    strokeOpacity: 0.1
+  });
+  
+  root.setThemes([ am5themes_Animated.new(root),  myTheme ]);
+  
+  
+  // Create chart
+  // https://www.amcharts.com/docs/v5/charts/xy-chart/
+  var chart = root.container.children.push(am5xy.XYChart.new(root, {
+    panX: false,
+    panY: false,
+    paddingLeft: 0,
+    layout: root.verticalLayout
+  }));
+
+  let data = scope.main;
+
+  data = [
+    {siteName: 'AB1234X', site_down: 33.70751555555555, site_available: 7.146242222222223, province: "A"},
+    {siteName: 'AB1237X', site_down: 33.721201111111114, site_available: 7.139399444444445, province: "A1"},
+    {siteName: 'AB1237X1', site_down: 33.721201111111114, site_available: 7.139399444444445, province: "A2"},
+    {siteName: 'AB1237X2', site_down: 33.721201111111114, site_available: 7.139399444444445, province: "A3"},
+    {siteName: 'AB1237X3', site_down: 33.721201111111114, site_available: 7.139399444444445, province: "A4"},
+    {siteName: 'AB1237X4', site_down: 33.721201111111114, site_available: 7.139399444444445, province: "A5"},
+    {siteName: 'AB1237X5', site_down: 33.721201111111114, site_available: 7.139399444444445, province: "A6"},
+    {siteName: 'AB1237X6', site_down: 33.721201111111114, site_available: 7.139399444444445, province: "A7"},
+    {siteName: 'AB1237X7', site_down: 33.721201111111114, site_available: 7.139399444444445, province: "A8"},
+    {siteName: 'AB1237X8', site_down: 33.721201111111114, site_available: 7.139399444444445, province: "A9"},
+    {siteName: 'AB1237X9', site_down: 33.721201111111114, site_available: 7.139399444444445, province: "A10"}
+  ]
+
+  // Create axes
+  // https://www.amcharts.com/docs/v5/charts/xy-chart/axes/
+  var yRenderer = am5xy.AxisRendererY.new(root, {});
+  var yAxis = chart.yAxes.push(am5xy.CategoryAxis.new(root, {
+    categoryField: "siteName",
+    renderer: yRenderer,
+    tooltip: am5.Tooltip.new(root, {})
+  }));
+  
+  yAxis.get("renderer").labels.template.setAll({
+    oversizedBehavior: "truncate",
+    maxWidth: 200,
+  });
+  
+  yRenderer.grid.template.setAll({
+    location: 1
+  })
+  
+  yAxis.data.setAll(data);
+  
+  // add auto scroll id data has more then 7 items
+  if (data.length > 7) {
+    var scrollableContainer = chart.chartContainer.children.unshift(am5.Container.new(root, {
+        width: am5.p100, 
+        height: am5.p100, 
+        verticalScrollbar: am5.Scrollbar.new(root, {
+          orientation: "vertical",
+          dx:20
+        })
+    }))
+    
+    chart.yAxesAndPlotContainer.set("height", data.length * 45); // 1 site == 45px (height)
+    chart.yAxesAndPlotContainer.set("paddingBottom", 10)
+    scrollableContainer.children.push(chart.yAxesAndPlotContainer);
+  }
+  
+  // make y axes stack
+  chart.leftAxesContainer.set("layout", root.verticalLayout);
+  
+  var xAxis = chart.xAxes.push(am5xy.ValueAxis.new(root, {
+      min: 0,
+      max: 100,
+      numberFormat: "#'%'",
+      strictMinMax: true,
+      calculateTotals: true,
+      renderer: am5xy.AxisRendererX.new(root, {
+        strokeOpacity: 0.1
+      })
+  }));
+  
+  // Add legend
+  // https://www.amcharts.com/docs/v5/charts/xy-chart/legend-xy-series/
+  var legend = chart.children.unshift(am5.Legend.new(root, {
+      centerX: am5.p50,
+      x: am5.p50,
+      y: 0,
+      centerY: am5.p0
+  }));
+  
+  // add drop
+  var dropdownButtonContainer = document.createElement("div");
+  dropdownButtonContainer.style.position = "absolute";
+  dropdownButtonContainer.style.top = "-5px";
+  dropdownButtonContainer.style.right = "10px";
+  dropdownButtonContainer.style.zIndex = 10;
+  dropdownButtonContainer.style.backgroundColor = "#ffffff";
+  dropdownButtonContainer.style.padding = "10px";
+  dropdownButtonContainer.style.borderRadius = "5px";
+  dropdownButtonContainer.style.boxShadow = "0px 0px 5px rgba(0,0,0,0.3)";
+
+  var dropdownButton = document.createElement("button");
+  dropdownButton.textContent = "Select Provinces";
+  dropdownButton.style.padding = "5px 10px";
+  dropdownButton.style.fontSize = "14px";
+  dropdownButton.style.cursor = "pointer";
+  dropdownButton.style.border = "none";
+  dropdownButton.style.borderRadius = "3px";
+  dropdownButton.style.backgroundColor = "#4CAF50";
+  dropdownButton.style.color = "white";
+
+  var dropdownMenu = document.createElement("select");
+  dropdownMenu.multiple = true;
+  dropdownMenu.style.display = "none";
+  dropdownMenu.style.width = "200px"; // Устанавливаем ширину
+  dropdownMenu.style.position = "absolute";
+  dropdownMenu.style.top = "30px";
+  dropdownMenu.style.right = "0";
+  dropdownMenu.style.borderRadius = "5px";
+  dropdownMenu.style.backgroundColor = "#f9f9f9";
+  dropdownMenu.style.boxShadow = "0px 8px 16px rgba(0,0,0,0.2)";
+  dropdownMenu.style.padding = "10px";
+
+  const provinces = ["A", "A1", "A2", "A3", "A4", "A5", "A6", "A7", "A8", "A9", "A10"];
+
+  provinces.forEach(function(province) {
+    var option = document.createElement("option");
+    option.value = province;
+    option.textContent = province;
+    dropdownMenu.appendChild(option);
+  });
+
+  dropdownButtonContainer.appendChild(dropdownButton);
+  dropdownButtonContainer.appendChild(dropdownMenu);
+  document.querySelector(`#${chartdiv}`).appendChild(dropdownButtonContainer);
+
+  dropdownButton.onclick = function() {
+    dropdownMenu.style.display = dropdownMenu.style.display === "block" ? "none" : "block";
+  };
+
+  dropdownMenu.onchange = function() {
+    var selectedProvinces = Array.from(dropdownMenu.selectedOptions).map(option => option.value);
+    
+    var filteredData = selectedProvinces.length === 0 ? data : data.filter(function(item) {
+      return selectedProvinces.includes(item.province);
+    });
+
+    yAxis.data.setAll(filteredData);
+    series.data.setAll(filteredData);
+    chart.appear(1000, 100);
+  };
+
+  // Add series
+  // https://www.amcharts.com/docs/v5/charts/xy-chart/series/
+  function makeSeries(name, fieldName) {
+    var series = chart.series.push(am5xy.ColumnSeries.new(root, {
+      name: name,
+      stacked: true,
+      xAxis: xAxis,
+      yAxis: yAxis,
+      baseAxis: yAxis,
+      valueXField: fieldName,
+      valueXShow: "valueXTotalPercent",
+      categoryYField: "siteName"
+    }));
+    
+    const color = fieldName == "site_down" ? "#ea9999" : "#b6d7a8"
+  
+    series.columns.template.setAll({
+      tooltipText: "{name}, {categoryY}: {valueX}hrs",
+      tooltipY: am5.percent(90),
+      fill: color,
+      stroke: color 
+    });
+    series.data.setAll(data);
+  
+    // Make stuff animate on load
+    // https://www.amcharts.com/docs/v5/concepts/animations/
+    series.appear();
+  
+    series.bullets.push(function () {
+      return am5.Bullet.new(root, {
+        sprite: am5.Label.new(root, {
+          text: "{valueXTotalPercent.formatNumber('#.#')}%",
+          fill: root.interfaceColors.get("alternativeText"),
+          centerY: am5.p50,
+          centerX: am5.p50,
+          populateText: true
+        })
+      });
+    });
+  
+    legend.data.push(series);
+  }
+  
+  makeSeries(`Site Down`, "site_down");
+  makeSeries(`Site Available`, "site_available");
+  
+  
+  // Make stuff animate on load
+  // https://www.amcharts.com/docs/v5/concepts/animations/
+  chart.appear(1000, 100);
+
+  return root;
+}
+</client_script>

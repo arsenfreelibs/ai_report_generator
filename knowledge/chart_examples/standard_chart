@@ -1,0 +1,253 @@
+<user_request>
+Create an interactive dashboard with two connected charts: a donut pie chart showing regional data distribution and a horizontal column chart that displays detailed breakdown data. When a user clicks on a pie slice, the column chart should update to show the breakdown data for that region. Include interactive tooltips with clickable links, dynamic color coordination between charts, and center labels in the pie chart showing percentage and category information. The dashboard should handle region-based data with URL generation for drill-down functionality.
+</user_request>
+
+<description>
+This example demonstrates a sophisticated interactive dashboard combining a pie chart and column chart using amCharts 5. Key features include:
+
+- **Dual Chart Layout**: Side-by-side layout with pie chart (50% width) and column chart (50% width)
+- **Interactive Connection**: Clicking pie slices updates the column chart with breakdown data
+- **Donut Pie Chart**: Inner radius of 50% with custom slice colors and interactive tooltips
+- **Dynamic Column Chart**: Horizontal bars that update based on pie slice selection
+- **Color Coordination**: Column chart inherits colors from the selected pie slice
+- **Center Labels**: Two-level labeling in pie chart center showing percentage and category
+- **URL Generation**: Dynamic URL creation for drill-down functionality with encoded filters
+- **Region Mapping**: Handles region name mapping and prioritizes "Central" region as default
+- **Interactive Tooltips**: HTML-enabled tooltips with clickable links for data exploration
+- **Auto-selection**: Automatically selects the first pie slice on load
+- **Random Colors**: Generates random colors for pie slices if not predefined
+- **Responsive Design**: Proper container overflow handling and layout management
+- **Data Processing**: Handles complex nested data structures with breakdown arrays
+- **Animation**: Smooth transitions and entrance animations
+
+The dashboard uses scope data to populate both charts and creates a seamless user experience where regional overview (pie chart) connects to detailed breakdown analysis (column chart). The system includes URL encoding for special characters and maintains state synchronization between the two visualizations.
+</description>
+
+<client_script>
+function(chartdiv, scope) {
+  const root = am5.Root.new(chartdiv);
+  
+  while(true){
+    const el = document.getElementById(`${chartdiv}`);
+    if(el) {
+      const parent = el.closest('.widget-content');
+      if(parent) parent.style.overflow = "hidden";
+      break;
+    }
+  }
+  
+  root.setThemes([ am5themes_Animated.new(root) ]);
+  
+  // Set up data
+  var data = scope.data;
+  const userFilter = scope.filter;
+  const regionsMapping = lodash.invert(scope.regionsMapping);
+  
+  //Make URLs for the series
+  console.log(scope);
+  data.forEach(obj => {
+    obj.url = `<a href="${utils.getHostURL()}/site_request/view/grid/all_sites_requests?filter=\`site_name\`.\`region\`%20=%20${encodeURI(regionsMapping[obj.category])}${encodeURI(userFilter)}" target="_blank">Show list</a>`;
+    if(!!obj.breakdown){
+      obj.breakdown.forEach(childObj => {
+        childObj.url = `<a href="${utils.getHostURL()}/site_request/view/grid/all_sites_requests?filter=\`site_name\`.\`region\`%20=%20${encodeURI(regionsMapping[obj.category])}%20AND%20\`gap_index\`%20=%20'${encodeURI(childObj.category)}'${encodeURI(userFilter)}" target="_blank">${childObj.category}:${childObj.value}</a>`;
+      });
+    }
+  });
+  
+  //console.log(data);
+  
+  for(let i = 0; i < data.length; i++){
+    data[i].sliceSettings.fill = am5.color(`#${Math.floor(Math.random()*16777215).toString(16)}`);
+  }
+  
+  //Define default Region as Central if exist, if no, then first in the list
+  let centralRegionIndex;
+  for(let i = 0; i < data.length; i++){
+    if(data[i].category == 'Central'){
+      centralRegionIndex = i;
+      break;
+    }
+  }
+  
+  if(centralRegionIndex){
+    let tmp = data[centralRegionIndex];
+    data[centralRegionIndex] = data[0];
+    data[0] = tmp;
+  }
+  
+  // Create wrapper container
+  var container = root.container.children.push(am5.Container.new(root, {
+    width: am5.p100,
+    height: am5.p100,
+    layout: root.horizontalLayout
+  }));
+  
+  // Create chart
+  // https://www.amcharts.com/docs/v5/charts/xy-chart/
+  var columnChart = container.children.push(am5xy.XYChart.new(root, {
+    width: am5.p50,
+    panX: false,
+    panY: false,
+    wheelX: "none",
+    wheelY: "none",
+    layout: root.verticalLayout
+  }));
+  
+  // Create axes
+  // https://www.amcharts.com/docs/v5/charts/xy-chart/axes/
+  var yRenderer = am5xy.AxisRendererY.new(root, {
+    minGridDistance: 20
+  });
+  var yAxis = columnChart.yAxes.push(am5xy.CategoryAxis.new(root, {
+    categoryField: "category",
+    renderer: yRenderer
+  }));
+  
+  yRenderer.grid.template.setAll({
+    location: 1
+  })
+  
+  var xAxis = columnChart.xAxes.push(am5xy.ValueAxis.new(root, {
+    renderer: am5xy.AxisRendererX.new(root, {
+      strokeOpacity: 0.1
+    })
+  }));
+  
+  
+  // Add series
+  // https://www.amcharts.com/docs/v5/charts/xy-chart/series/
+  var columnSeries = columnChart.series.push(am5xy.ColumnSeries.new(root, {
+    name: name,
+    xAxis: xAxis,
+    yAxis: yAxis,
+    valueXField: "value",
+    categoryYField: "category",
+    // tooltip: am5.Tooltip.new(root, {
+    //   labelHTML: `{url}`,
+    //   keepTargetHover: true
+    // })
+  }));
+  
+  //columnSeries.get("tooltip").label.set("interactive", true);
+  
+  columnSeries.bullets.push(function () {
+    return am5.Bullet.new(root, {
+      locationX: 1,
+      locationY: 0.5,
+      sprite: am5.Label.new(root, {
+        centerY: am5.p50,
+        text: "{valueX}",
+        populateText: true
+      })
+    });
+  });
+  
+  columnSeries.columns.template.setAll({
+    tooltipText: "{categoryY}: {valueX}"
+  });
+  
+  //series.data.setAll(data);
+  
+  // Make stuff animate on load
+  // https://www.amcharts.com/docs/v5/concepts/animations/
+  columnChart.appear(1000, 100);
+  
+  
+  // ==============================================
+  // Column chart
+  // ==============================================
+  
+  var pieChart = container.children.push(
+    am5percent.PieChart.new(root, {
+      width: am5.p50,
+      innerRadius: am5.percent(50)
+    })
+  );
+  
+  // Create series
+  var pieSeries = pieChart.series.push(
+    am5percent.PieSeries.new(root, {
+      valueField: "value",
+      categoryField: "category",
+      tooltip: am5.Tooltip.new(root, {
+        labelHTML: `{url}`,
+        keepTargetHover: true
+      })
+    })
+  );
+  
+  //96981
+  pieSeries.labels.template.setAll({
+    text: "{category}: {value}",
+  });
+  
+  pieSeries.get("tooltip").label.set("interactive", true);
+  
+  pieSeries.slices.template.setAll({
+    templateField: "sliceSettings",
+    strokeOpacity: 0
+  });
+  
+  // pieSeries.legendSettings.labelText = '{category}';
+  // pieSeries.legendSettings.valueText = '{value}';
+  
+  var currentSlice;
+  pieSeries.slices.template.on("active", function(active, slice) {
+    if (currentSlice && currentSlice != slice && active) {
+      currentSlice.set("active", false)
+    }
+  
+    var color = slice.get("fill");
+  
+    label1.setAll({
+      fill: color,
+      text: root.numberFormatter.format(slice.dataItem.get("valuePercentTotal"), "#.00'%'")
+    });
+  
+    label2.set("text", slice.dataItem.get("category"));
+    //label2.set("text", slice.dataItem.get("value"));
+  
+    columnSeries.columns.template.setAll({
+      fill: slice.get("fill"),
+      stroke: slice.get("fill")
+    });
+  
+    columnSeries.data.setAll(slice.dataItem.dataContext.breakdown);
+    yAxis.data.setAll(slice.dataItem.dataContext.breakdown);
+  
+    currentSlice = slice;
+  });
+  
+  // pieSeries.labels.template.set("forceHidden", true);  //96981
+  pieSeries.ticks.template.set("forceHidden", true);
+  
+  pieSeries.data.setAll(data);
+  
+  // Add label
+  var label1 = pieChart.seriesContainer.children.push(am5.Label.new(root, {
+    text: "",
+    fontSize: 35,
+    fontweight: "bold",
+    centerX: am5.p50,
+    centerY: am5.p50
+  }));
+  
+  var label2 = pieChart.seriesContainer.children.push(am5.Label.new(root, {
+    text: "",
+    fontSize: 12,
+    centerX: am5.p50,
+    centerY: am5.p50,
+    dy: 30
+  }));
+  
+  // Pre-select first slice
+  pieSeries.events.on("datavalidated", function() {
+    pieSeries.slices.getIndex(0).set("active", true);
+  });
+
+  //const data = scope.data;
+  //console.log(scope.data);
+
+  return root;
+}
+</client_script>

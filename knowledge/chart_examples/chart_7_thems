@@ -1,0 +1,107 @@
+<user_request>
+Create a custom theme for amCharts 5 that applies pattern fills to pie chart slices instead of solid colors. The theme should cycle through different pattern types (line, rectangle, circle) and apply them automatically to each slice with reduced opacity for better visual appeal. Include a pie chart demonstrating the custom theme with sample sales data and a horizontal legend.
+</user_request>
+
+<description>
+This example demonstrates how to create a custom theme in amCharts 5 with pattern fills for enhanced visual styling. Key features include:
+
+- **Custom Theme Class**: Extends am5.Theme to create a personalized styling system
+- **Pattern Fill System**: Three different pattern types applied cyclically:
+  - Line patterns with 45-degree rotation
+  - Rectangle patterns for geometric fills
+  - Circle patterns for dotted appearance
+- **Automatic Pattern Cycling**: Each pie slice automatically receives the next pattern in sequence
+- **Opacity Control**: Reduced fill opacity (0.2) for subtle pattern effects
+- **Theme Combination**: Combines custom theme with built-in Animated theme
+- **Pattern Management**: Internal counter system to track and cycle through available patterns
+- **Setup Function**: Custom setup function that applies patterns to chart elements
+- **Sample Implementation**: Pie chart with sales data from three countries
+- **Legend Integration**: Horizontal legend that works seamlessly with patterned slices
+- **White Pattern Colors**: All patterns use white color (0xffffff) for consistent appearance
+
+The custom theme automatically applies to all "Slice" elements in the chart, making it reusable across different pie charts without additional configuration. The pattern cycling ensures each slice has a unique visual appearance while maintaining consistency in the overall design. This approach is particularly useful for creating charts that need to work well in print or when color differentiation alone isn't sufficient for accessibility.
+</description>
+
+<client_script>
+function(chartdiv, scope) {
+  const root = am5.Root.new(chartdiv);
+  class MyTheme extends am5.Theme {
+  
+    setupDefaultRules() {
+      
+      var theme = this;
+      
+      this.patterns = [
+        am5.LinePattern.new(this._root, {
+          color: am5.color(0xffffff),
+          rotation: 45
+        }),
+        am5.RectanglePattern.new(this._root, {
+          color: am5.color(0xffffff)
+        }),
+        am5.CirclePattern.new(this._root, {
+          color: am5.color(0xffffff)
+        })
+      ];
+      
+      this.currentPattern = 0;
+      
+      this.rule("Slice").setAll({
+        fillOpacity: 0.2
+      });
+      
+      this.rule("Slice").setup = function(target) {
+        target.set("fillPattern", theme.patterns[theme.currentPattern]);
+        theme.currentPattern++;
+        if (theme.currentPattern == theme.patterns.length) {
+          theme.currentPattern = 0;
+        }
+        
+      };
+  
+    }
+  }
+  
+  root.setThemes([
+    am5themes_Animated.new(root),
+    MyTheme.new(root)
+  ]);
+  
+  var chart = root.container.children.push( 
+    am5percent.PieChart.new(root, {
+      layout: root.verticalLayout
+    }) 
+  );
+  
+  // Define data
+  var data = [{
+    country: "France",
+    sales: 100000
+  }, {
+    country: "Spain",
+    sales: 160000
+  }, {
+    country: "United Kingdom",
+    sales: 80000
+  }];
+  
+  // Create series
+  var series = chart.series.push(
+    am5percent.PieSeries.new(root, {
+      name: "Series",
+      valueField: "sales",
+      categoryField: "country"
+    })
+  );
+  series.data.setAll(data);
+  
+  // Add legend
+  var legend = chart.children.push(am5.Legend.new(root, {
+    centerX: am5.percent(50),
+    x: am5.percent(50),
+    layout: root.horizontalLayout
+  }));
+  
+  legend.data.setAll(series.dataItems);
+}
+</client_script>

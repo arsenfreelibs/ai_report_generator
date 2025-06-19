@@ -349,23 +349,27 @@ CRITICAL REQUIREMENTS:
         """Create a prompt for client-side JS code generation with retrieved context"""
         # Categorize context items
         models_info = [item for item in context if item['type'] == 'model']
-        report_examples = [item for item in context if item['type'] == 'report_example']
+        chart_examples = [item for item in context if item['type'] == 'chart_example']
         
-        # Format report examples focusing on client scripts
-        client_examples_str = ""
-        if report_examples:
-            client_examples_str = "\n## Client-Side Report Examples:\n"
-            for example in report_examples:
-                client_examples_str += f"\n### Example: {example.get('name', 'Unknown')}\n"
-                client_examples_str += f"User Request: {example.get('user_request', '')[:200]}...\n"
+        # Format chart examples focusing on client scripts
+        chart_examples_str = ""
+        if chart_examples:
+            chart_examples_str = "\n## Chart Examples:\n"
+            for example in chart_examples:
+                chart_examples_str += f"\n### Example: {example.get('name', 'Unknown')}\n"
+                chart_examples_str += f"User Request: {example.get('user_request', '')[:200]}...\n"
+                chart_examples_str += f"Description: {example.get('description', '')[:300]}...\n"
                 
                 # Focus on client script patterns
                 client_script = example.get('client_script', '')
                 if client_script:
-                    client_lines = client_script.split('\n')
-                    client_examples_str += f"Client Script Pattern:\n```javascript\n"
-                    client_examples_str += "\n".join(client_lines)
-                    client_examples_str += "\n```\n"
+                    # Show first 20 lines of client script to avoid overwhelming the prompt
+                    client_lines = client_script.split('\n')[:20]
+                    chart_examples_str += f"Client Script Pattern:\n```javascript\n"
+                    chart_examples_str += "\n".join(client_lines)
+                    if len(client_script.split('\n')) > 20:
+                        chart_examples_str += "\n// ... (truncated for brevity)"
+                    chart_examples_str += "\n```\n"
 
         # Format model information
         models_str = "\n".join([
@@ -381,11 +385,18 @@ Your client script MUST follow this exact structure:
 
 ```javascript
 function(chartdiv, scope) {
-  const chart = am4core.create(chartdiv, am4charts.XYChart);
+  const root = am5.Root.new(chartdiv);
+  root.setThemes([am5themes_Animated.new(root)]);
 
+  // Create chart based on requirements
+  const chart = root.container.children.push(am5xy.XYChart.new(root, {
+    // chart configuration
+  }));
+
+  // Use scope.main to access data
   chart.data = scope.main;
 
-  return chart;
+  return root;
 }
 ```
 
@@ -393,25 +404,26 @@ IMPORTANT GUIDELINES:
 1. Generate ONLY client-side JavaScript code for amCharts visualization
 2. The code should be a function that takes (chartdiv, scope) parameters
 3. Use scope.main to access data provided by the server script
-4. Always use amCharts libraries (am4core, am5, am5xy, am5percent, etc.)
+4. Prefer amCharts 5 libraries (am5, am5xy, am5percent, etc.) over am4
 5. Create interactive tooltips with clickable links where appropriate
 6. Include proper event handlers for user interactions
 7. Use responsive design principles
-8. Return the chart/root object at the end of the function
+8. Return the root object at the end of the function
 9. Write clean, commented code explaining key visualization logic
 10. Handle empty data gracefully
-11. Use appropriate chart types based on the request (pie, bar, line, etc.)
+11. Use appropriate chart types based on the request (pie, bar, line, spline, etc.)
 12. Include animations and transitions for better UX
-13. KEEP THE CODE AS SIMPLE AS POSSIBLE - generate minimal code with only essential features
-14. Avoid complex configurations unless specifically requested
-15. Focus on basic chart creation with data binding
+13. Follow the patterns shown in the chart examples
+14. Add legends, scrollbars, and cursors when needed for better usability
+15. Use proper color schemes and styling consistent with the examples
 
 Client-side code structure:
-- Should be a function(chartdiv, scope) { ... return chart/root; }
+- Should be a function(chartdiv, scope) { ... return root; }
 - Access server data via scope.main
-- Create amCharts visualizations with minimal configuration
-- Add only essential interactivity
-- Keep code concise and readable
+- Create amCharts visualizations following example patterns
+- Add interactive features like tooltips, legends, cursors
+- Use proper animations and theming
+- Keep code well-structured and documented
 """
 
         # Construct the full prompt
@@ -421,7 +433,7 @@ Client-side code structure:
 ## Available Models (for context):
 {models_str}
 
-{client_examples_str}
+{chart_examples_str}
 
 ## Server Code Context:
 The server script returns data in this structure:

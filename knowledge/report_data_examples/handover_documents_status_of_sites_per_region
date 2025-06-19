@@ -1,0 +1,149 @@
+<user_request>
+Generate an interactive client-server report visualizing the status distribution of handover_document records by region. On the right side, render a Pie Chart showing the count of SOF (Site On Field) records per region; on the left side, display a Bar Chart with the breakdown of statuses (New, Submitted, Rejected, Concurred, Cancelled) for the selected region. The charts are interactive and linked: clicking a pie slice updates the bar chart with the corresponding regional breakdown. Include dynamic tooltips with hyperlinks pointing to filtered views (/handover_document/view/grid/_g_all?filter=...) based on region and status. Use amCharts 5, with server-side aggregation of data from the handover_document, site, and region models via JS API calls (p.getModel, iterMap, setOptions, etc.).
+</user_request>
+
+<description>
+Title: Handover Document Regional Status Report
+Description:
+This server-side component aggregates handover document data by region and status using NASC's JS API for data processing and filtering.
+
+Server-side data aggregation:
+
+Models used:
+- region: source of all region names and IDs (id, name)
+- site: maps site_id to region (id, region)  
+- handover_document (scope): queried for records (id, site_id, status, created_at)
+
+Data processing logic:
+- Creates region mapping from region model (name → id)
+- Builds site-to-region mapping (site_id → region_id)
+- Filters handover records and groups by region
+- For each region, calculates total SOF count and status breakdown (New, Submitted, Rejected, Concurred, Cancelled)
+- Generates filter links for each region/status combination pointing to grid views
+- Assigns colors cyclically from predefined palette
+- Sorts regions by record count (descending)
+
+Filter link generation:
+- Base link: /handover_document/view/grid/_g_all?filter=
+- Region filters: `site_id`.`region`={regionId}
+- Status filters: `status`='{statusValue}'
+- Combines existing filters with AND operators
+
+Output structure:
+- main: array of region data with category, value, breakdown, and filter links
+- totalRecords: total count across all regions
+
+Technical implementation:
+- Uses p.getModel(...).setOptions({ check_permission: { all: false } }) to bypass permissions
+- Uses p.iterEach() and p.iterMap() for efficient data processing
+- Handles filter concatenation with proper SQL syntax
+</description>
+
+<server_script>
+async function (scope) {
+  const params = p.getRequest();
+  
+  let filter = lodash.get(params, 'filter');
+  filter = filter ? filter : '';
+  
+  let link = `${utils.getHostURL()}/handover_document/view/grid/_g_all?filter=${filter}`;
+  
+  const region_model = (await p.getModel("region")).setOptions({ check_permission: { all: false } });
+  const regionMapping = {};
+  await p.iterEach(
+    region_model.find({}).fields(['id', 'name']).raw(),
+    function(region) {
+      regionMapping[region.name] = region.id;
+    }
+  )
+  
+  // ---------------------------------------------------------
+  // 3) Собираем мапинг siteId → regionId
+  // ---------------------------------------------------------
+  const site_model = (await p.getModel("site")).setOptions({ check_permission: { all: false } });
+  const siteIdToRegionId = {};
+  await p.iterEach(
+    site_model
+      .find({
+        // можно без фильтров, если хотим все site
+      })
+      .fields(["id", "region"])
+      .raw(),
+    (site) => {
+      siteIdToRegionId[site.id] = site.region;
+    }
+  );
+
+  // ---------------------------------------------------------
+  // 4) Модель SOF, ищем записи за прошлый месяц
+  // ---------------------------------------------------------
+  const handoverRecords = await p.iterMap(
+    scope.find({}).fields(['id', 'site_id', 'status', 'created_at']).raw(),
+    ho => ho
+  );
+
+  // ---------------------------------------------------------
+  // 5) Подсчитываем общее кол-во SOF
+  // ---------------------------------------------------------
+  const totalRecords = handoverRecords.length;
+
+  // ---------------------------------------------------------
+  // 6) Список цветов (при желании можно расширить)
+  // ---------------------------------------------------------
+  let index = -1;
+  const colors = [
+    "#dc4534",
+    "#d7a700",
+    "#68ad5c",
+    "#006fb9",
+    "#9b59b6",
+    "#b53471"
+  ];
+
+  // ---------------------------------------------------------
+  // 7) Собираем массив data для Pie/Bar, взяв все регионы из CO "Regions"
+  // ---------------------------------------------------------
+
+
+  let region, data = [];
+  for (let name in regionMapping) {
+    regionId = regionMapping[name];
+    index++;
+    const regionHandovers = handoverRecords.filter((rec) => siteIdToRegionId[rec.site_id] == regionId);
+    const regionCount = regionHandovers.length;
+    
+    const breakdown = [
+      "New",
+      "Submitted",
+      "Rejected",
+      "Concurred",
+      "Cancelled"
+    ].map((statusStr) => {
+      // Считаем, сколько SOF имеет данный статус
+      const count = regionHandovers.filter((r) => r.status === statusStr).length;
+      return {
+        category: statusStr,
+        value: count,
+        filter :`${link.includes('status') ? link : filter === '' ? link + "\`status\`='" + statusStr + "'" : link + " AND \`status\`='" + statusStr + "'"} ${link.includes('region') ? '' : `AND \`site_id\`.\`region\`=${regionId}`}`
+      };
+    });
+    data.push({
+      category: name,  // Для Pie
+      value: regionCount,    // Кол-во
+      sliceSettings: {
+        fill: colors[index % colors.length],
+      },
+      breakdown,
+      'link': `${link.includes('region') ? link : filter === '' ? link + `\`site_id\`.\`region\`=${regionId}` : link + `AND \`site_id\`.\`region\`=${regionId}`} AND \`status\` IS NOT NULL`
+    });
+  }
+  
+  // ---------------------------------------------------------
+  // 8) Возвращаем на клиент
+  // ---------------------------------------------------------
+  return {
+    main: data.sort((a, b) => b.value - a.value),
+    totalRecords: totalRecords,
+  };
+}
+</server_script>

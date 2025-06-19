@@ -1,0 +1,618 @@
+<user_request>
+Create a comprehensive dashboard with multiple chart types arranged in containers. The layout should include: a variance column chart with arrows and percentage indicators, an animated racing bar chart that updates data in real-time with sorting, a gradient-filled line chart, and a semi-circular pie chart. Arrange these charts using horizontal and vertical container layouts to create a professional multi-chart dashboard interface.
+</user_request>
+
+<description>
+This example demonstrates advanced container layouts with four different chart types showcasing various amCharts 5 capabilities. Key features include:
+
+**Container Layout System:**
+- Main horizontal container splitting the dashboard into sections
+- Nested vertical container on the right for stacked charts
+- Responsive layout management with percentage-based sizing
+
+**Chart 1 - Variance Column Chart:**
+- Year-over-year comparison with variance indicators
+- Custom arrows pointing up/down based on performance
+- Percentage labels with dynamic color coding (green/red)
+- Dual series: main columns and variance indicators
+- Custom bullet implementations with adapters
+
+**Chart 2 - Racing Bar Chart:**
+- Real-time data updates every 1.5 seconds
+- Animated sorting and repositioning of bars
+- Multi-colored columns with rounded corners
+- Dynamic value labels on bars
+- Country-based data with smooth transitions
+
+**Chart 3 - Gradient Line Chart:**
+- Smoothed line series with area fill
+- Linear gradient from solid to transparent
+- Quarterly data visualization
+- Enhanced stroke styling
+
+**Chart 4 - Semi-Circular Pie Chart:**
+- 180-degree arc (semi-circle) presentation
+- Donut chart with 50% inner radius
+- Rounded corner slices
+- Hidden tick marks for cleaner appearance
+- Custom start/end angles for unique layout
+
+**Advanced Features:**
+- Complex data processing and manipulation
+- Custom bullet and label systems
+- Real-time animation and updates
+- Adaptive sorting algorithms
+- Custom variance calculations
+- Professional styling and theming
+
+This example serves as a comprehensive template for creating sophisticated dashboards that combine multiple visualization types in a cohesive, interactive interface.
+</description>
+
+<client_script>
+function(chartdiv, scope) {
+  const root = am5.Root.new(chartdiv);
+  root.setThemes([ am5themes_Animated.new(root) ]);
+  
+  
+  var containerMain = root.container.children.push(
+    am5.Container.new(root, {
+      width: am5.p100,
+      height: am5.p100,
+      layout: root.horizontalLayout
+    })
+  );
+  
+  // 1
+  getFirstChart(containerMain);
+  getSecondChart(containerMain);
+  
+  // 2
+  var containerRight = containerMain.children.push(
+    am5.Container.new(root, {
+      width: am5.p100,
+      height: am5.p100,
+      layout: root.verticalLayout
+    })
+  );
+  
+  // getFirstChart(containerRight);
+  getLineGradientChart(containerRight);
+  getPieChart(containerRight);
+
+
+  return root;
+  
+  // ------------ CHARTS---------------
+  
+  function getFirstChart(containerMain) {
+      // ------------ 1st chart
+    // Create chart
+    // https://www.amcharts.com/docs/v5/charts/xy-chart/
+    var chart = containerMain.children.push(am5xy.XYChart.new(root, {
+      panX: false,
+      panY: false,
+      wheelX: "none",
+      wheelY: "none",
+      layout: root.verticalLayout,
+      paddingLeft: 0
+    }));
+    
+    
+    // Data
+    var data = [{
+      year: "2015",
+      value: 600000,
+      nodeSettings: {
+        fill: am5.color("#FF621E")
+      }
+    }, {
+      year: "2016",
+      value: 900000,
+    }, {
+      year: "2017",
+      value: 180000
+    }, {
+      year: "2018",
+      value: 600000
+    }, {
+      year: "2019",
+      value: 350000
+    }, {
+      year: "2020",
+      value: 600000
+    }, {
+      year: "2021",
+      value: 670000
+    }];
+    
+    // Populate data
+    for (var i = 0; i < (data.length - 1); i++) {
+      data[i].valueNext = data[i + 1].value;
+    }
+    
+    
+    // Create axes
+    // https://www.amcharts.com/docs/v5/charts/xy-chart/axes/
+    var xRenderer = am5xy.AxisRendererX.new(root, {
+      cellStartLocation: 0.1,
+      cellEndLocation: 0.9,
+      minGridDistance: 30,
+      minorGridEnabled: true
+    });
+    
+    var xAxis = chart.xAxes.push(am5xy.CategoryAxis.new(root, {
+      categoryField: "year",
+      renderer: xRenderer,
+      tooltip: am5.Tooltip.new(root, {})
+    }));
+    
+    xRenderer.grid.template.setAll({
+      location: 1
+    })
+    
+    xAxis.data.setAll(data);
+    
+    var yAxis = chart.yAxes.push(am5xy.ValueAxis.new(root, {
+      min: 0,
+      renderer: am5xy.AxisRendererY.new(root, {
+        strokeOpacity: 0.1
+      })
+    }));
+    
+    
+    // Add series
+    // https://www.amcharts.com/docs/v5/charts/xy-chart/series/
+    
+    // Column series
+    var series = chart.series.push(am5xy.ColumnSeries.new(root, {
+      xAxis: xAxis,
+      yAxis: yAxis,
+      valueYField: "value",
+      categoryXField: "year",
+    }));
+    
+    series.columns.template.setAll({
+      tooltipText: "{categoryX}: {valueY}",
+      width: am5.percent(90),
+      tooltipY: 0,
+    });
+    
+    series.data.setAll(data);
+    
+    series.columns.template.setAll({
+      templateField: "nodeSettings"
+    });
+    
+    // Variance indicator series
+    var series2 = chart.series.push(am5xy.ColumnSeries.new(root, {
+      xAxis: xAxis,
+      yAxis: yAxis,
+      valueYField: "valueNext",
+      openValueYField: "value",
+      categoryXField: "year",
+      fill: am5.color(0x555555),
+      stroke: am5.color(0x555555)
+    }));
+    
+    series2.columns.template.setAll({
+      width: 1
+    });
+    
+    series2.data.setAll(data);
+    
+    series2.bullets.push(function () {
+      var label = am5.Label.new(root, {
+        text: "{valueY}",
+        fontWeight: "500",
+        fill: am5.color(0x00cc00),
+        centerY: am5.p100,
+        centerX: am5.p50,
+        populateText: true
+      });
+    
+      // Modify text of the bullet with percent
+      label.adapters.add("text", function (text, target) {
+        var percent = getVariancePercent(target.dataItem);
+        return percent ? percent + "%" : text;
+      });
+    
+      // Set dynamic color of the bullet
+      label.adapters.add("centerY", function (center, target) {
+        return getVariancePercent(target.dataItem) < 0 ? 0 : center;
+      });
+    
+      // Set dynamic color of the bullet
+      label.adapters.add("fill", function (fill, target) {
+        return getVariancePercent(target.dataItem) < 0 ? am5.color(0xcc0000) : fill;
+      });
+    
+      return am5.Bullet.new(root, {
+        locationY: 1,
+        sprite: label
+      });
+    });
+    
+    series2.bullets.push(function () {
+      var arrow = am5.Graphics.new(root, {
+        rotation: -90,
+        centerX: am5.p50,
+        centerY: am5.p50,
+        dy: 3,
+        fill: am5.color(0x555555),
+        stroke: am5.color(0x555555),
+        draw: function (display) {
+          display.moveTo(0, -3);
+          display.lineTo(8, 0);
+          display.lineTo(0, 3);
+          display.lineTo(0, -3);
+        }
+      });
+    
+      arrow.adapters.add("rotation", function (rotation, target) {
+        return getVariancePercent(target.dataItem) < 0 ? 90 : rotation;
+      });
+    
+      arrow.adapters.add("dy", function (dy, target) {
+        return getVariancePercent(target.dataItem) < 0 ? -3 : dy;
+      });
+    
+      return am5.Bullet.new(root, {
+        locationY: 1,
+        sprite: arrow
+      })
+    })
+    
+    
+    // Make stuff animate on load
+    // https://www.amcharts.com/docs/v5/concepts/animations/
+    series.appear();
+    chart.appear(1000, 100);
+  }
+  
+  function getSecondChart(containerMain) {
+    // Create chart
+    // https://www.amcharts.com/docs/v5/charts/xy-chart/
+    var chart1 = containerMain.children.push(am5xy.XYChart.new(root, {
+      panX: true,
+      panY: true,
+      wheelX: "none",
+      wheelY: "none",
+      paddingLeft: 0
+    }));
+    
+    // We don't want zoom-out button to appear while animating, so we hide it
+    chart1.zoomOutButton.set("forceHidden", true);
+    
+    
+    // Create axes
+    // https://www.amcharts.com/docs/v5/charts/xy-chart/axes/
+    var xRenderer1 = am5xy.AxisRendererX.new(root, {
+      minGridDistance: 30,
+      minorGridEnabled: true
+    });
+    xRenderer1.labels.template.setAll({
+      rotation: -90,
+      centerY: am5.p50,
+      centerX: 0,
+      paddingRight: 15
+    });
+    xRenderer1.grid.template.set("visible", false);
+    
+    var xAxis1 = chart1.xAxes.push(am5xy.CategoryAxis.new(root, {
+      maxDeviation: 0.3,
+      categoryField: "country",
+      renderer: xRenderer1
+    }));
+    
+    var yAxis1 = chart1.yAxes.push(am5xy.ValueAxis.new(root, {
+      maxDeviation: 0.3,
+      min: 0,
+      renderer: am5xy.AxisRendererY.new(root, {})
+    }));
+    
+    
+    // Add series
+    // https://www.amcharts.com/docs/v5/charts/xy-chart/series/
+    var series1 = chart1.series.push(am5xy.ColumnSeries.new(root, {
+      name: "Series 1",
+      xAxis: xAxis1,
+      yAxis: yAxis1,
+      valueYField: "value",
+      categoryXField: "country"
+    }));
+    
+    // Rounded corners for columns
+    series1.columns.template.setAll({
+      cornerRadiusTL: 5,
+      cornerRadiusTR: 5,
+      strokeOpacity: 0
+    });
+    
+    // Make each column to be of a different color
+    series1.columns.template.adapters.add("fill", function (fill, target) {
+      return chart1.get("colors").getIndex(series1.columns.indexOf(target));
+    });
+    
+    series1.columns.template.adapters.add("stroke", function (stroke, target) {
+      return chart1.get("colors").getIndex(series1.columns.indexOf(target));
+    });
+    
+    // Add Label bullet
+    series1.bullets.push(function () {
+      return am5.Bullet.new(root, {
+        locationY: 1,
+        sprite: am5.Label.new(root, {
+          text: "{valueYWorking.formatNumber('#.')}",
+          fill: root.interfaceColors.get("alternativeText"),
+          centerY: 0,
+          centerX: am5.p50,
+          populateText: true
+        })
+      });
+    });
+    
+    
+    // Set data
+    var data1 = [{
+      "country": "USA",
+      "value": 2025
+    }, {
+      "country": "China",
+      "value": 1882
+    }, {
+      "country": "Japan",
+      "value": 1809
+    }, {
+      "country": "Germany",
+      "value": 1322
+    }, {
+      "country": "UK",
+      "value": 1122
+    }, {
+      "country": "France",
+      "value": 1114
+    }, {
+      "country": "India",
+      "value": 984
+    }, {
+      "country": "Spain",
+      "value": 711
+    }, {
+      "country": "Netherlands",
+      "value": 665
+    }, {
+      "country": "South Korea",
+      "value": 443
+    }, {
+      "country": "Canada",
+      "value": 441
+    }];
+    
+    xAxis1.data.setAll(data1);
+    series1.data.setAll(data1);
+    
+    // update data with random values each 1.5 sec
+    setInterval(function () {
+      updateData();
+    }, 1500)
+    
+    function updateData() {
+      am5.array.each(series1.dataItems, function (dataItem) {
+        var value = dataItem.get("valueY") + Math.round(Math.random() * 300 - 150);
+        if (value < 0) {
+          value = 10;
+        }
+        // both valueY and workingValueY should be changed, we only animate workingValueY
+        dataItem.set("valueY", value);
+        dataItem.animate({
+          key: "valueYWorking",
+          to: value,
+          duration: 600,
+          easing: am5.ease.out(am5.ease.cubic)
+        });
+      })
+    
+      sortCategoryAxis();
+    }
+    
+    
+    // Get series item by category
+    function getSeriesItem(category) {
+      for (var i = 0; i < series1.dataItems.length; i++) {
+        var dataItem = series1.dataItems[i];
+        if (dataItem.get("categoryX") == category) {
+          return dataItem;
+        }
+      }
+    }
+    
+    
+    // Axis sorting
+    function sortCategoryAxis() {
+    
+      // Sort by value
+      series1.dataItems.sort(function (x, y) {
+        return y.get("valueY") - x.get("valueY"); // descending
+        //return y.get("valueY") - x.get("valueY"); // ascending
+      })
+    
+      // Go through each axis item
+      am5.array.each(xAxis1.dataItems, function (dataItem) {
+        // get corresponding series item
+        var seriesDataItem = getSeriesItem(dataItem.get("category"));
+    
+        if (seriesDataItem) {
+          // get index of series data item
+          var index = series1.dataItems.indexOf(seriesDataItem);
+          // calculate delta position
+          var deltaPosition = (index - dataItem.get("index", 0)) / series1.dataItems.length;
+          // set index to be the same as series data item index
+          dataItem.set("index", index);
+          // set deltaPosition instanlty
+          dataItem.set("deltaPosition", -deltaPosition);
+          // animate delta position to 0
+          dataItem.animate({
+            key: "deltaPosition",
+            to: 0,
+            duration: 1000,
+            easing: am5.ease.out(am5.ease.cubic)
+          })
+        }
+      });
+    
+      // Sort axis items by index.
+      // This changes the order instantly, but as deltaPosition is set,
+      // they keep in the same places and then animate to true positions.
+      xAxis1.dataItems.sort(function (x, y) {
+        return x.get("index") - y.get("index");
+      });
+    }
+    
+    
+    // Make stuff animate on load
+    // https://www.amcharts.com/docs/v5/concepts/animations/
+    series1.appear(1000);
+    chart1.appear(1000, 100);
+  }
+  
+  function getVariancePercent(dataItem) {
+    if (dataItem) {
+      var value = dataItem.get("valueY");
+      var openValue = dataItem.get("openValueY");
+      var change = value - openValue;
+      return Math.round(change / openValue * 100);
+    }
+    return 0;
+  }
+  
+  function getPieChart(containerMain){
+    // Create chart
+    // https://www.amcharts.com/docs/v5/charts/percent-charts/pie-chart/
+    // start and end angle must be set both for chart and series
+    var chart = containerMain.children.push(am5percent.PieChart.new(root, {
+      startAngle: 180,
+      endAngle: 360,
+      layout: root.verticalLayout,
+      innerRadius: am5.percent(50)
+    }));
+    
+    // Create series
+    // https://www.amcharts.com/docs/v5/charts/percent-charts/pie-chart/#Series
+    // start and end angle must be set both for chart and series
+    var series = chart.series.push(am5percent.PieSeries.new(root, {
+      startAngle: 180,
+      endAngle: 360,
+      valueField: "value",
+      categoryField: "category",
+      alignLabels: false
+    }));
+    
+    series.states.create("hidden", {
+      startAngle: 180,
+      endAngle: 180
+    });
+    
+    series.slices.template.setAll({
+      cornerRadius: 5
+    });
+    
+    series.ticks.template.setAll({
+      forceHidden: true
+    });
+    
+    // Set data
+    // https://www.amcharts.com/docs/v5/charts/percent-charts/pie-chart/#Setting_data
+    series.data.setAll([
+      { value: 10, category: "One" },
+      { value: 9, category: "Two" },
+      { value: 6, category: "Three" },
+      { value: 5, category: "Four" },
+      { value: 4, category: "Five" },
+      { value: 3, category: "Six" },
+      { value: 1, category: "Seven" }
+    ]);
+    
+    series.appear(1000, 100);
+  }
+  
+  function getLineGradientChart(containerMain){
+    var chart = containerMain.children.push(am5xy.XYChart.new(root, {
+      panX: false,
+      panY: false,
+      wheelX: "none",
+      wheelY: "none",
+      layout: root.verticalLayout,
+      paddingLeft: 0
+    }));
+    
+    
+    // Define data
+    var data = [{ 
+      category: "Q1", 
+      value1: 1000, 
+      value2: 588 
+    }, { 
+      category: "Q2", 
+      value1: 1200, 
+      value2: 1800 
+    }, { 
+      category: "Q3", 
+      value1: 850, 
+      value2: 1230 
+    }, { 
+      category: "Q4", 
+      value1: 1100, 
+      value2: 800 
+    }];
+    
+    // Craete Y-axis
+    let yAxis = chart.yAxes.push(
+      am5xy.ValueAxis.new(root, {
+        renderer: am5xy.AxisRendererY.new(root, {
+        })
+      })
+    );
+    
+    // Create X-Axis
+    var xAxis = chart.xAxes.push(
+      am5xy.CategoryAxis.new(root, {
+          maxDeviation: 0.2,
+          renderer: am5xy.AxisRendererX.new(root, {
+        }),
+        categoryField: "category"
+      })
+    );
+    xAxis.data.setAll(data);
+    
+    // Create series
+    var series1 = chart.series.push( 
+      am5xy.SmoothedXLineSeries.new(root, { 
+        name: "Series", 
+        xAxis: xAxis, 
+        yAxis: yAxis, 
+        valueYField: "value1", 
+        categoryXField: "category"
+      }) 
+    );
+    series1.data.setAll(data);
+    
+    series1.fills.template.set("fillGradient", am5.LinearGradient.new(root, {
+      stops: [{
+        opacity: 1
+      }, {
+        opacity: 0.5
+      }],
+      rotation: 90
+    }));
+    
+    series1.fills.template.setAll({
+      visible: true,
+      fillOpacity: 1
+    });
+    
+    series1.strokes.template.setAll({
+      strokeWidth: 2
+    });
+  }
+}
+</client_script>
