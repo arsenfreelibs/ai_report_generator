@@ -364,11 +364,9 @@ CRITICAL REQUIREMENTS:
                 client_script = example.get('client_script', '')
                 if client_script:
                     # Show first 20 lines of client script to avoid overwhelming the prompt
-                    client_lines = client_script.split('\n')[:20]
+                    client_lines = client_script.split('\n')
                     chart_examples_str += f"Client Script Pattern:\n```javascript\n"
                     chart_examples_str += "\n".join(client_lines)
-                    if len(client_script.split('\n')) > 20:
-                        chart_examples_str += "\n// ... (truncated for brevity)"
                     chart_examples_str += "\n```\n"
 
         # Format model information

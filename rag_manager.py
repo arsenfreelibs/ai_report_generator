@@ -50,11 +50,11 @@ class RagManager:
             self.initialize()
 
         # Split k between models, JS API, report examples, report data examples, and chart examples
-        model_k = int(k * 0.25)  # 25% for models
-        js_api_k = int(k * 0.2)   # 20% for JS API
-        report_k = int(k * 0.15)  # 15% for report examples
-        report_data_k = int(k * 0.2)  # 20% for report data examples (server-focused)
-        chart_k = int(k * 0.2)    # 20% for chart examples (client-focused)
+        model_k = int(k * 0.5)
+        js_api_k = int(k * 0.2)
+        # report_k = int(k * 0.15)
+        report_data_k = int(k * 0.15)
+        chart_k = int(k * 0.15)
 
         # Search models
         model_results = self.metadata_indexer.search(query, k=model_k)
