@@ -495,7 +495,7 @@ CRITICAL REQUIREMENTS:
         server_prompt = self._create_js_prompt(enhanced_query, context)
         
         # Generate server-side response from LLM
-        server_response_text = self.llm_processor.generate_response(server_prompt, max_tokens=2048, temperature=0.2)
+        server_response_text = self.llm_processor.generate_response(server_prompt, max_tokens=512, temperature=0.2)
         print(f"Server response: {server_response_text}")
 
         # Extract server JS from response
