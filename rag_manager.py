@@ -65,16 +65,16 @@ class RagManager:
         print(f"JS API search returned {len(js_api_results)} documents")
 
         # Search report examples
-        report_results = self.report_example_indexer.search(query, k=report_k)
-        print(f"Report example search returned {len(report_results)} documents")
+        # report_results = self.report_example_indexer.search(query, k=report_k)
+        # print(f"Report example search returned {len(report_results)} documents")
 
         # Search report data examples (for server scripts)
         report_data_results = self.report_data_example_indexer.search(query, k=report_data_k)
         print(f"Report data example search returned {len(report_data_results)} documents")
 
         # Search chart examples (for client scripts)
-        # chart_results = self.report_chart_example_indexer.search(query, k=chart_k)
-        # print(f"Chart example search returned {len(chart_results)} documents")
+        chart_results = self.report_chart_example_indexer.search(query, k=chart_k)
+        print(f"Chart example search returned {len(chart_results)} documents")
 
         # Combine results
         combined_docs = model_results + js_api_results + report_data_results + chart_results # + report_results
