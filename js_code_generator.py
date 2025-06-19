@@ -22,7 +22,7 @@ class JSCodeGenerator:
         """Create a prompt for JS code generation with retrieved context"""
         # Categorize context items
         models_info = [item for item in context if item['type'] == 'model']
-        report_examples = [item for item in context if item['type'] == 'report_example']
+        report_data_examples = [item for item in context if item['type'] == 'report_data_example']
         api_info = [item for item in context if item['type'] == 'js_api']
         
         # Format model information with emphasis on aliases
@@ -77,31 +77,23 @@ class JSCodeGenerator:
                 
                 fields_info.append(field_info)
 
-        # Format report examples
-        report_examples_str = ""
-        if report_examples:
-            report_examples_str = "\n## Similar Report Examples:\n"
-            for example in report_examples:
-                report_examples_str += f"\n### Example: {example.get('name', 'Unknown')}\n"
-                report_examples_str += f"User Request: {example.get('user_request', '')[:200]}...\n"
+        # Format report data examples with focus on server scripts
+        report_data_examples_str = ""
+        if report_data_examples:
+            report_data_examples_str = "\n## Similar Server Script Examples:\n"
+            for example in report_data_examples:
+                report_data_examples_str += f"\n### Example: {example.get('name', 'Unknown')}\n"
+                report_data_examples_str += f"User Request: {example.get('user_request', '')[:200]}...\n"
                 
-                # Add relevant code snippets from client and server scripts
-                client_script = example.get('client_script', '')
+                # Focus on server script patterns for data retrieval
                 server_script = example.get('server_script', '')
                 
                 if server_script:
                     # Extract key patterns from server script
-                    server_lines = server_script.split('\n')  # First 15 lines
-                    report_examples_str += f"Server Script Pattern:\n```javascript\n"
-                    report_examples_str += "\n".join(server_lines)
-                    report_examples_str += "\n```\n"
-                
-                if client_script:
-                    # Extract key patterns from client script
-                    client_lines = client_script.split('\n')
-                    report_examples_str += f"Client Script Pattern:\n```javascript\n"
-                    report_examples_str += "\n".join(client_lines)
-                    report_examples_str += "\n```\n"
+                    server_lines = server_script.split('\n')
+                    report_data_examples_str += f"Server Script Pattern:\n```javascript\n"
+                    report_data_examples_str += "\n".join(server_lines)
+                    report_data_examples_str += "\n```\n"
 
         # Format field information, grouped by model, with emphasis on aliases and including possible values
         fields_by_model = {}
@@ -187,7 +179,7 @@ Follow these guidelines:
 10. Add helpful comments to explain your code
 11. Make sure your code returns an object with 'main' property containing the records array
 12. Return only the JavaScript code, with no additional explanations
-13. Use the provided report examples as reference patterns when applicable
+13. Use the provided server script examples as reference patterns when applicable
 
 ## COMMON MISTAKES TO AVOID:
 
@@ -233,7 +225,7 @@ Remember: Always check the "Possible values" for array_string fields and use ONL
 ## Available JS API Methods:
 {api_str}
 
-{report_examples_str}
+{report_data_examples_str}
 
 ## User Request:
 {query}
@@ -247,7 +239,7 @@ CRITICAL REQUIREMENTS:
 3. ALWAYS use field aliases (e.g., 'status') instead of display names ('Status')
 4. For array_string fields, ALWAYS use the EXACT key values (e.g., 'New', 'Open'), NOT the display values
 5. If filtering for "active" status, check the available values first and use the appropriate key
-6. Use the report examples as reference patterns when applicable
+6. Use the server script examples as reference patterns when applicable
 7. DO NOT invent or guess field values - only use the exact keys provided in the field definitions
 8. Return data in the format {{ main: records }} where records is an array
 
@@ -483,13 +475,12 @@ CRITICAL REQUIREMENTS:
         if "return" not in query.lower() and "array" not in query.lower():
             enhanced_query = f"{query}"
 
-        # Retrieve relevant context using RagManager
+        # Retrieve relevant context using RagManager (now includes report data examples)
         context = self.rag_manager.hybrid_search(enhanced_query, k=25)
         print(f"Retrieved {len(context)} context items for query: '{enhanced_query}'")
 
         # Create server-side JS generation prompt
         server_prompt = self._create_js_prompt(enhanced_query, context)
-        # print(f"Server prompt: {server_prompt}")
         
         # Generate server-side response from LLM
         server_response_text = self.llm_processor.generate_response(server_prompt, max_tokens=2048, temperature=0.2)
@@ -501,9 +492,8 @@ CRITICAL REQUIREMENTS:
         # Ensure server code returns array of records if it doesn't already
         server_js_code = self._ensure_code_returns_array(server_js_code)
 
-        # Create client-side JS generation prompt
+        # Create client-side JS generation prompt (still using original report examples for client)
         client_prompt = self._create_client_js_prompt(enhanced_query, context, server_js_code)
-        # print(f"Client prompt: {client_prompt}")
         
         # Generate client-side response from LLM
         client_response_text = self.llm_processor.generate_response(client_prompt, max_tokens=2048, temperature=0.2)
@@ -521,6 +511,7 @@ CRITICAL REQUIREMENTS:
                 "models": [item for item in context if item['type'] == 'model'][:3],
                 "fields": [item for item in context if item['type'] == 'field'][:5],
                 "api_methods": [item for item in context if item['type'] == 'js_api'][:5],
+                "report_data_examples": [item for item in context if item['type'] == 'report_data_example'][:3],
                 "report_examples": [item for item in context if item['type'] == 'report_example'][:3],
             }
         }
@@ -647,6 +638,10 @@ CRITICAL REQUIREMENTS:
                     'api_methods_used': [
                         {'name': api.get('name', '')} 
                         for api in result['context_used']['api_methods']
+                    ],
+                    'report_data_examples_used': [
+                        {'name': example.get('name', '')} 
+                        for example in result['context_used']['report_data_examples']
                     ],
                     'report_examples_used': [
                         {'name': example.get('name', '')} 
