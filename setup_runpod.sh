@@ -1,9 +1,11 @@
 #!/bin/bash
 
+mkdir -p /workspace/.ssh
+
 # Проверяем, существуют ли ключи в ~/workspace/ssh
 if [ ! -f /workspace/.ssh/gitlab_key ] || [ ! -f /workspace/.ssh/gitlab_key.pub ]; then
-    echo "Ключи не найдены в /workspace/ssh, генерируем новые..."
-    ssh-keygen -t ed25519 -C "demo@demo.com" -f /workspace/ssh/gitlab_key -N ""
+    echo "Ключи не найдены в /workspace/.ssh, генерируем новые..."
+    ssh-keygen -t ed25519 -C "demo@demo.com" -f /workspace/.ssh/gitlab_key -N ""
 else
     echo "Ключи уже существуют в ~/workspace/ssh, пропускаем генерацию."
 fi
