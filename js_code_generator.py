@@ -3,14 +3,33 @@ import json
 from typing import Dict, List
 from rag_manager import RagManager
 from llm_processor import LLMProcessor
+from llm_openai_processor import LLMOpenAIProcessor
+import config
 
 class JSCodeGenerator:
     """Main class for converting natural language to JavaScript code"""
 
-    def __init__(self, metadata_path: str, model_path: str):
+    def __init__(self, metadata_path: str, model_path: str = None):
         """Initialize the JavaScript code generator"""
         self.rag_manager = RagManager(metadata_path)
-        self.llm_processor = LLMProcessor(model_path)
+        
+        # Get LLM processor configuration
+        llm_config = config.get_llm_processor_config()
+        
+        # Initialize appropriate processor based on configuration
+        if llm_config['type'] == 'openai':
+            self.llm_processor = LLMOpenAIProcessor(
+                api_key=llm_config['api_key'],
+                model_name=llm_config['model_name']
+            )
+        else:
+            # Use provided model_path or fall back to config
+            processor_model_path = model_path or llm_config['model_path']
+            self.llm_processor = LLMProcessor(
+                model_path=processor_model_path,
+                device=llm_config['device'],
+                enable_4bit=llm_config['enable_4bit']
+            )
 
     def initialize(self):
         """Initialize all components"""

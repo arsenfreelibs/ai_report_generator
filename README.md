@@ -38,15 +38,27 @@ Follow these steps to run the application on RunPod:
 
 5. **Using the API server**
    ```bash
-   # Start the API server
+   # Start the API server (default model)
    python api_server.py
    
-   # By default, the server runs on port 5000
-   # You can change the port with:
-   PORT=8080 python api_server.py
-   or
+   # Start with a specific model using MODEL_KEY
    MODEL_KEY="codellama" python api_server.py
+   MODEL_KEY="mixtral" python api_server.py
+   MODEL_KEY="qwen" python api_server.py
+   MODEL_KEY="codellama_small" python api_server.py
+   
+   # Or specify custom port
+   PORT=8080 python api_server.py
+   
+   # Combine model and port configuration
+   MODEL_KEY="codellama" PORT=8080 python api_server.py
    ```
+
+   **Available Models:**
+   - `codellama`: CodeLlama-13b-Instruct-hf (default, best for code generation)
+   - `codellama_small`: CodeLlama-7b-Instruct-hf (smaller, faster)
+   - `mixtral`: Mixtral-8x7B-Instruct-v0.1 (general purpose)
+   - `qwen`: Qwen-14B-Chat (multilingual support)
    
    Once the server is running, you can make requests to it:
    
@@ -119,6 +131,30 @@ Follow these steps to run the application on RunPod:
    - **Generate endpoint**: Generated JavaScript code, validation status, context information
    - **Chat endpoint**: LLM response, conversation parameters, error handling
    - **Generate-prompt endpoint**: Generated prompt with context, no code execution
+
+## Configuration
+
+### Environment Variables
+
+- `MODEL_KEY`: Choose the model to use (default: `codellama_small`)
+- `MODEL_PATH`: Direct path to model (overrides MODEL_KEY)
+- `METADATA_PATH`: Path to metadata JSON file
+- `PORT`: API server port (default: 5000)
+- `LLM_PROCESSOR_TYPE`: Use 'local' or 'openai' (default: 'local')
+- `OPENAI_API_KEY`: Required when using OpenAI models
+- `OPENAI_MODEL_KEY`: OpenAI model to use (gpt-3.5-turbo, gpt-4, etc.)
+
+### Example configurations:
+```bash
+# Use CodeLlama 13B model
+MODEL_KEY="codellama" python api_server.py
+
+# Use OpenAI GPT-4
+LLM_PROCESSOR_TYPE="openai" OPENAI_API_KEY="your-key" OPENAI_MODEL_KEY="gpt-4" python api_server.py
+
+# Custom metadata file
+METADATA_PATH="/path/to/custom/metadata.json" python api_server.py
+```
 
 ## API Endpoints
 
@@ -305,7 +341,7 @@ If you encounter errors:
 
 1. **Memory issues**: Try using a smaller model
    ```bash
-   MODEL_PATH="Qwen/Qwen-7B-Chat" python main.py
+   MODEL_KEY="codellama_small" python api_server.py
    ```
 
 2. **Missing dependencies**: Make sure installation was successful
@@ -325,4 +361,13 @@ If you encounter errors:
    
    # Check if port 5000 is already in use
    netstat -tuln | grep 5000
+   ```
+
+5. **Model loading errors**: Ensure you have sufficient disk space and RAM
+   ```bash
+   # Check available space
+   df -h
+   
+   # Check memory usage
+   free -h
    ```
