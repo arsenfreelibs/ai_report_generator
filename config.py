@@ -14,7 +14,9 @@ OPENAI_MODEL_OPTIONS = {
     "gpt-3.5-turbo": "gpt-3.5-turbo",
     "gpt-4": "gpt-4",
     "gpt-4-turbo": "gpt-4-turbo-preview",
-    "gpt-3.5-turbo-16k": "gpt-3.5-turbo-16k"
+    "gpt-3.5-turbo-16k": "gpt-3.5-turbo-16k",
+    "gpt-4.1": "gpt-4.1",
+    "gpt-4o": "gpt-4o",
 }
 
 # LLM Processor Configuration
@@ -22,7 +24,7 @@ LLM_PROCESSOR_TYPE = os.environ.get('LLM_PROCESSOR_TYPE', 'openai')  # 'local' o
 
 # Default configuration
 DEFAULT_MODEL = "codellama_small"
-DEFAULT_OPENAI_MODEL = "gpt-4-turbo"
+DEFAULT_OPENAI_MODEL = "gpt-4.1"
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 ENABLE_4BIT = True if DEVICE == "cuda" else False
 EMBEDDING_MODEL = "all-MiniLM-L6-v2"
