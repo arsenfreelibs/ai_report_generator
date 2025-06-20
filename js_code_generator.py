@@ -428,11 +428,6 @@ Client-side code structure:
         prompt = f"""
 {system_prompt}
 
-## Available Models (for context):
-{models_str}
-
-{chart_examples_str}
-
 ## Server Code Context:
 The server script returns data in this structure:
 ```javascript
@@ -470,7 +465,7 @@ CRITICAL REQUIREMENTS:
             enhanced_query = f"{query}"
 
         # Retrieve relevant context
-        context = self.rag_manager.hybrid_search(enhanced_query, k=15)
+        context = self.rag_manager.hybrid_search(enhanced_query, k=30)
         print(f"Retrieved {len(context)} context items for query: '{enhanced_query}'")
 
         # Create JS generation prompt

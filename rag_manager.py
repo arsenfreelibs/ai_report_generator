@@ -50,8 +50,8 @@ class RagManager:
             self.initialize()
 
         # Split k between models, JS API, report examples, report data examples, and chart examples
-        model_k = int(k * 0.5)
-        js_api_k = int(k * 0.2)
+        model_k = int(k * 1)
+        js_api_k = int(k * 0.3)
         # report_k = int(k * 0.15)
         report_data_k = int(k * 0.15)
         chart_k = int(k * 0.15)
