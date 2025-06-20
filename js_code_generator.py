@@ -145,7 +145,7 @@ class JSCodeGenerator:
                 array_string_examples_str += f"- For model '{example['model_alias']}', field '{example['field_alias']}': {example['example']}\n"        
 
         # Construct the system prompt with stronger emphasis on array_string fields
-        system_prompt = """You are an expert JavaScript code generator for the SL2 system. Your task is to convert natural language requests into precise JavaScript code that uses SL2's API.
+        system_prompt = """You are an expert JavaScript code generator for the SL2 system. Your task is to convert natural language requests into precise JavaScript code that constructs data for reports using SL2's API.        
 
 IMPORTANT:
 - Your code MUST ALWAYS return an array of records as the final result.
@@ -665,3 +665,18 @@ CRITICAL REQUIREMENTS:
                 'error': str(e),
                 'query': request_data.get('query', '')
             }
+
+    def generate_client_script_prompt(self, query: str, server_script: str = '') -> str:
+        """Process a natural language query and return client script prompt"""
+        # Retrieve relevant context focusing on chart examples
+        context = self.rag_manager.get_chart_examples_context(query, k=10)
+        
+        # Also get some model context for reference
+        model_context = self.rag_manager.get_models_context(query, k=5)
+        context.extend(model_context)
+        
+        print(f"Retrieved {len(context)} context items for client prompt: '{query}'")
+
+        # Create client JS generation prompt
+        prompt = self._create_client_js_prompt(query, context, server_script)
+        return prompt

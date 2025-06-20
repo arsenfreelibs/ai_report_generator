@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 class ReportDataExampleIndexer:
     """Handles indexing and retrieval of SL2 report data examples"""
 
-    def __init__(self, knowledge_path: str = "report_data_examples", embedding_model_name: str = EMBEDDING_MODEL):
+    def __init__(self, knowledge_path: str = "knowledge/report_data_examples", embedding_model_name: str = EMBEDDING_MODEL):
         """Initialize the report data example indexer"""
         self.knowledge_path = knowledge_path
         self.embedding_model_name = embedding_model_name

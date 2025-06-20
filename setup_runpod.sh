@@ -7,7 +7,7 @@ if [ ! -f /workspace/.ssh/gitlab_key ] || [ ! -f /workspace/.ssh/gitlab_key.pub 
     echo "Ключи не найдены в /workspace/.ssh, генерируем новые..."
     ssh-keygen -t ed25519 -C "demo@demo.com" -f /workspace/.ssh/gitlab_key -N ""
 else
-    echo "Ключи уже существуют в ~/workspace/ssh, пропускаем генерацию."
+    echo "Ключи уже существуют в ~/workspace/.ssh, пропускаем генерацию."
 fi
 
 # Создаём директорию ~/.ssh, если она не существует
