@@ -22,7 +22,7 @@ LLM_PROCESSOR_TYPE = os.environ.get('LLM_PROCESSOR_TYPE', 'openai')  # 'local' o
 
 # Default configuration
 DEFAULT_MODEL = "codellama_small"
-DEFAULT_OPENAI_MODEL = "gpt-4"
+DEFAULT_OPENAI_MODEL = "gpt-4-turbo"
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 ENABLE_4BIT = True if DEVICE == "cuda" else False
 EMBEDDING_MODEL = "all-MiniLM-L6-v2"

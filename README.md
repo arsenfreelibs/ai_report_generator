@@ -53,6 +53,23 @@ Follow these steps to run the application on RunPod:
    # Combine model and port configuration
    MODEL_KEY="codellama" PORT=8080 python api_server.py
    ```
+   **OpenAI Models:**
+   ```bash
+   # Use OpenAI GPT-3.5-turbo (default OpenAI model)
+   LLM_PROCESSOR_TYPE="openai" OPENAI_API_KEY="sk-your-openai-api-key" python api_server.py
+   
+   # Use OpenAI GPT-4
+   LLM_PROCESSOR_TYPE="openai" OPENAI_API_KEY="sk-your-openai-api-key" OPENAI_MODEL_KEY="gpt-4" python api_server.py
+   
+   # Use OpenAI GPT-4-turbo
+   LLM_PROCESSOR_TYPE="openai" OPENAI_API_KEY="sk-your-openai-api-key" OPENAI_MODEL_KEY="gpt-4-turbo" python api_server.py
+   
+   # Use OpenAI with custom port
+   LLM_PROCESSOR_TYPE="openai" OPENAI_API_KEY="sk-your-openai-api-key" PORT=8080 python api_server.py
+   
+   # Use OpenAI GPT-4 with custom port and metadata
+   LLM_PROCESSOR_TYPE="openai" OPENAI_API_KEY="sk-your-openai-api-key" OPENAI_MODEL_KEY="gpt-4" PORT=8080 METADATA_PATH="/custom/path/metadata.json" python api_server.py
+   ```
 
    **Available Models:**
    - `codellama`: CodeLlama-13b-Instruct-hf (default, best for code generation)
