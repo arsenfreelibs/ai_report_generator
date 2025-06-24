@@ -19,8 +19,18 @@ OPENAI_MODEL_OPTIONS = {
     "gpt-4o": "gpt-4o",
 }
 
+# Claude model options
+CLAUDE_MODEL_OPTIONS = {
+    "claude-3-haiku": "claude-3-haiku-20240307",
+    "claude-3-sonnet": "claude-3-sonnet-20240229",
+    "claude-3-opus": "claude-3-opus-20240229",
+    "claude-3.5-sonnet": "claude-3-5-sonnet-20241022",
+    "claude-4": "claude-4",
+    "claude-4-turbo": "claude-4-turbo"
+}
+
 # LLM Processor Configuration
-LLM_PROCESSOR_TYPE = os.environ.get('LLM_PROCESSOR_TYPE', 'openai')  # 'local' or 'openai'
+LLM_PROCESSOR_TYPE = os.environ.get('LLM_PROCESSOR_TYPE', 'openai')  # 'local', 'openai', or 'claude'
 
 # Default configuration
 DEFAULT_MODEL = "codellama_small"
@@ -40,6 +50,11 @@ OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '')
 OPENAI_MODEL_KEY = os.environ.get('OPENAI_MODEL_KEY', DEFAULT_OPENAI_MODEL)
 OPENAI_MODEL_NAME = OPENAI_MODEL_OPTIONS.get(OPENAI_MODEL_KEY, DEFAULT_OPENAI_MODEL)
 
+# Claude Configuration
+CLAUDE_API_KEY = os.environ.get('CLAUDE_API_KEY', '')
+CLAUDE_MODEL_KEY = os.environ.get('CLAUDE_MODEL_KEY', 'claude-3.5-sonnet')
+CLAUDE_MODEL_NAME = CLAUDE_MODEL_OPTIONS.get(CLAUDE_MODEL_KEY, 'claude-3-5-sonnet-20241022')
+
 # Google Drive Configuration
 GDRIVE_FILE_ID = None  # Set your Google Drive file ID here
 GDRIVE_CREDENTIALS_PATH = 'credentials.json'
@@ -57,6 +72,9 @@ def print_config():
     elif LLM_PROCESSOR_TYPE == 'openai':
         print(f"Using OpenAI model: {OPENAI_MODEL_NAME}")
         print(f"API Key configured: {'Yes' if OPENAI_API_KEY else 'No'}")
+    elif LLM_PROCESSOR_TYPE == 'claude':
+        print(f"Using Claude model: {CLAUDE_MODEL_NAME}")
+        print(f"API Key configured: {'Yes' if CLAUDE_API_KEY else 'No'}")
     print(f"Metadata path: {METADATA_PATH}")
 
 def get_llm_processor_config():
@@ -68,6 +86,14 @@ def get_llm_processor_config():
             'type': 'openai',
             'api_key': OPENAI_API_KEY,
             'model_name': OPENAI_MODEL_NAME
+        }
+    elif LLM_PROCESSOR_TYPE == 'claude':
+        if not CLAUDE_API_KEY:
+            raise ValueError("CLAUDE_API_KEY environment variable is required for Claude processor")
+        return {
+            'type': 'claude',
+            'api_key': CLAUDE_API_KEY,
+            'model_name': CLAUDE_MODEL_NAME
         }
     else:
         return {

@@ -71,12 +71,24 @@ Follow these steps to run the application on RunPod:
    LLM_PROCESSOR_TYPE="openai" OPENAI_API_KEY="sk-your-openai-api-key" OPENAI_MODEL_KEY="gpt-4" PORT=8080 METADATA_PATH="/custom/path/metadata.json" python api_server.py
    ```
 
-   **Available Models:**
-   - `codellama`: CodeLlama-13b-Instruct-hf (default, best for code generation)
-   - `codellama_small`: CodeLlama-7b-Instruct-hf (smaller, faster)
-   - `mixtral`: Mixtral-8x7B-Instruct-v0.1 (general purpose)
-   - `qwen`: Qwen-14B-Chat (multilingual support)
+   **Claude Models:**
+   ```bash
+   # Use Claude 3.5 Sonnet (default Claude model)
+   LLM_PROCESSOR_TYPE="claude" CLAUDE_API_KEY="sk-ant-your-claude-api-key" python api_server.py
    
+   # Use Claude 3 Opus
+   LLM_PROCESSOR_TYPE="claude" CLAUDE_API_KEY="sk-ant-your-claude-api-key" CLAUDE_MODEL_KEY="claude-3-opus" python api_server.py
+   
+   # Use Claude 3 Haiku (fastest)
+   LLM_PROCESSOR_TYPE="claude" CLAUDE_API_KEY="sk-ant-your-claude-api-key" CLAUDE_MODEL_KEY="claude-3-haiku" python api_server.py
+   
+   # Use Claude with custom port
+   LLM_PROCESSOR_TYPE="claude" CLAUDE_API_KEY="sk-ant-your-claude-api-key" PORT=8080 python api_server.py
+   
+   # Use Claude 3.5 Sonnet with custom port and metadata
+   LLM_PROCESSOR_TYPE="claude" CLAUDE_API_KEY="sk-ant-your-claude-api-key" CLAUDE_MODEL_KEY="claude-4" PORT=8080 METADATA_PATH="/custom/path/metadata.json" python api_server.py
+   ```
+
    Once the server is running, you can make requests to it:
    
    **JavaScript Code Generation:**
@@ -157,9 +169,11 @@ Follow these steps to run the application on RunPod:
 - `MODEL_PATH`: Direct path to model (overrides MODEL_KEY)
 - `METADATA_PATH`: Path to metadata JSON file
 - `PORT`: API server port (default: 5000)
-- `LLM_PROCESSOR_TYPE`: Use 'local' or 'openai' (default: 'local')
+- `LLM_PROCESSOR_TYPE`: Use 'local', 'openai', or 'claude' (default: 'openai')
 - `OPENAI_API_KEY`: Required when using OpenAI models
 - `OPENAI_MODEL_KEY`: OpenAI model to use (gpt-3.5-turbo, gpt-4, etc.)
+- `CLAUDE_API_KEY`: Required when using Claude models
+- `CLAUDE_MODEL_KEY`: Claude model to use (claude-3.5-sonnet, claude-3-opus, etc.)
 
 ### Example configurations:
 ```bash
@@ -168,6 +182,9 @@ MODEL_KEY="codellama" python api_server.py
 
 # Use OpenAI GPT-4
 LLM_PROCESSOR_TYPE="openai" OPENAI_API_KEY="your-key" OPENAI_MODEL_KEY="gpt-4" python api_server.py
+
+# Use Claude 3.5 Sonnet
+LLM_PROCESSOR_TYPE="claude" CLAUDE_API_KEY="your-key" CLAUDE_MODEL_KEY="claude-4" python api_server.py
 
 # Custom metadata file
 METADATA_PATH="/path/to/custom/metadata.json" python api_server.py

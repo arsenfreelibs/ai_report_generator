@@ -4,6 +4,7 @@ from typing import Dict, List
 from rag_manager import RagManager
 from llm_processor import LLMProcessor
 from llm_openai_processor import LLMOpenAIProcessor
+from llm_claude_processor import LLMClaudeProcessor
 import config
 
 class JSCodeGenerator:
@@ -19,6 +20,11 @@ class JSCodeGenerator:
         # Initialize appropriate processor based on configuration
         if llm_config['type'] == 'openai':
             self.llm_processor = LLMOpenAIProcessor(
+                api_key=llm_config['api_key'],
+                model_name=llm_config['model_name']
+            )
+        elif llm_config['type'] == 'claude':
+            self.llm_processor = LLMClaudeProcessor(
                 api_key=llm_config['api_key'],
                 model_name=llm_config['model_name']
             )
