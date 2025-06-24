@@ -25,8 +25,8 @@ CLAUDE_MODEL_OPTIONS = {
     "claude-3-sonnet": "claude-3-sonnet-20240229",
     "claude-3-opus": "claude-3-opus-20240229",
     "claude-3.5-sonnet": "claude-3-5-sonnet-20241022",
-    "claude-4": "claude-4",
-    "claude-4-turbo": "claude-4-turbo"
+    "claude-4": "claude-sonnet-4-20250514",
+    "claude-opus-4": "claude-opus-4-20250514"
 }
 
 # LLM Processor Configuration
