@@ -1,0 +1,264 @@
+<user_request>
+show user by region
+</user_request>
+
+<description>
+This chart visualization displays user distribution by region using two complementary chart types. It processes data showing the number of users per geographic region and presents it through both a pie chart and horizontal bar chart for comprehensive analysis.
+
+The client script creates a dual-panel dashboard:
+
+**Left Panel - Pie Chart:**
+- Shows proportional distribution of users across regions using a donut chart
+- Uses distinct colors for each region with a legend below
+- Displays tooltips showing exact user counts on hover
+- Clickable slices that trigger detailed user information popups
+
+**Right Panel - Bar Chart:**
+- Horizontal bar chart showing the same data in a different format
+- Easier to compare exact values between regions
+- Gradient-filled bars with rounded corners for visual appeal
+- Interactive cursor and click functionality for user details
+
+**Key Features:**
+- Handles empty data scenarios with appropriate messaging
+- Responsive dual-layout design splitting the view 50/50
+- Color-coded visualization with consistent theming
+- Interactive elements allowing drill-down into individual user data
+- Summary statistics showing total users and regions at the bottom
+- Smooth animations on chart load for enhanced user experience
+- Click handlers that display detailed user information including user IDs and activity metrics
+
+The script expects data in the format with category (region name), value (user count), and detailed user arrays for drill-down functionality.
+</description>
+
+<client_script>
+function(chartdiv, scope) {
+  // Initialize amCharts root with animation theme
+  const root = am5.Root.new(chartdiv);
+  root.setThemes([am5themes_Animated.new(root)]);
+
+  // Handle empty data case
+  if (!scope.main || scope.main.length === 0) {
+    const label = root.container.children.push(am5.Label.new(root, {
+      text: "No user data available",
+      fontSize: 20,
+      textAlign: "center",
+      x: am5.percent(50),
+      y: am5.percent(50)
+    }));
+    return root;
+  }
+
+  // Create container for multiple charts
+  const container = root.container.children.push(am5.Container.new(root, {
+    layout: root.horizontalLayout,
+    width: am5.percent(100),
+    height: am5.percent(100)
+  }));
+
+  // Left side - Pie Chart showing user distribution by region
+  const pieContainer = container.children.push(am5.Container.new(root, {
+    width: am5.percent(50),
+    height: am5.percent(100),
+    layout: root.verticalLayout
+  }));
+
+  // Add title for pie chart
+  pieContainer.children.push(am5.Label.new(root, {
+    text: "Users Distribution by Region",
+    fontSize: 18,
+    fontWeight: "bold",
+    textAlign: "center",
+    x: am5.percent(50),
+    marginBottom: 20
+  }));
+
+  // Create pie chart
+  const pieChart = pieContainer.children.push(am5percent.PieChart.new(root, {
+    layout: root.verticalLayout,
+    innerRadius: am5.percent(50)
+  }));
+
+  // Create pie series
+  const pieSeries = pieChart.series.push(am5percent.PieSeries.new(root, {
+    valueField: "value",
+    categoryField: "category",
+    alignLabels: false
+  }));
+
+  // Configure pie series
+  pieSeries.labels.template.setAll({
+    textType: "circular",
+    centerX: 0,
+    centerY: 0
+  });
+
+  // Set colors for pie slices
+  const colors = [
+    "#3366CC", "#DC3912", "#FF9900", "#109618", 
+    "#990099", "#3B3EAC", "#0099C6", "#DD4477",
+    "#66AA00", "#B82E2E", "#316395", "#994499"
+  ];
+
+  pieSeries.get("colors").set("colors", colors.map(color => am5.color(color)));
+
+  // Add tooltips to pie chart
+  pieSeries.slices.template.setAll({
+    tooltipText: "{category}: {value} users\nClick to view details",
+    cursor: "pointer"
+  });
+
+  // Add click event to pie slices
+  pieSeries.slices.template.on("click", function(ev) {
+    const dataItem = ev.target.dataItem;
+    if (dataItem && dataItem.dataContext.users) {
+      showUserDetails(dataItem.dataContext);
+    }
+  });
+
+  // Set pie chart data
+  pieSeries.data.setAll(scope.main);
+
+  // Add legend for pie chart
+  const pieLegend = pieChart.children.push(am5.Legend.new(root, {
+    centerX: am5.percent(50),
+    x: am5.percent(50),
+    marginTop: 15,
+    layout: root.gridLayout,
+    maxColumns: 2
+  }));
+  pieLegend.data.setAll(pieSeries.dataItems);
+
+  // Right side - Bar Chart showing detailed user activity
+  const barContainer = container.children.push(am5.Container.new(root, {
+    width: am5.percent(50),
+    height: am5.percent(100),
+    layout: root.verticalLayout
+  }));
+
+  // Add title for bar chart
+  barContainer.children.push(am5.Label.new(root, {
+    text: "User Activity by Region",
+    fontSize: 18,
+    fontWeight: "bold",
+    textAlign: "center",
+    x: am5.percent(50),
+    marginBottom: 20
+  }));
+
+  // Create XY chart for bar visualization
+  const barChart = barContainer.children.push(am5xy.XYChart.new(root, {
+    panX: false,
+    panY: false,
+    wheelX: "panX",
+    wheelY: "zoomX",
+    layout: root.verticalLayout
+  }));
+
+  // Create axes
+  const yAxis = barChart.yAxes.push(am5xy.CategoryAxis.new(root, {
+    categoryField: "category",
+    renderer: am5xy.AxisRendererY.new(root, {
+      inversed: true,
+      cellStartLocation: 0.1,
+      cellEndLocation: 0.9
+    })
+  }));
+
+  const xAxis = barChart.xAxes.push(am5xy.ValueAxis.new(root, {
+    renderer: am5xy.AxisRendererX.new(root, {
+      strokeOpacity: 0.1
+    }),
+    min: 0
+  }));
+
+  // Create bar series
+  const barSeries = barChart.series.push(am5xy.ColumnSeries.new(root, {
+    name: "Users",
+    xAxis: xAxis,
+    yAxis: yAxis,
+    valueXField: "value",
+    categoryYField: "category",
+    tooltip: am5.Tooltip.new(root, {
+      labelText: "{categoryY}: {valueX} users\nClick for user details"
+    })
+  }));
+
+  // Style bar series
+  barSeries.columns.template.setAll({
+    cornerRadiusTR: 5,
+    cornerRadiusBR: 5,
+    stroke: am5.color("#ffffff"),
+    strokeWidth: 1,
+    strokeOpacity: 1,
+    cursor: "pointer"
+  });
+
+  // Add gradient fill to bars
+  barSeries.columns.template.set("fill", am5.LinearGradient.new(root, {
+    stops: [
+      { color: am5.color("#3366CC") },
+      { color: am5.color("#6699FF") }
+    ]
+  }));
+
+  // Add click event to bars
+  barSeries.columns.template.on("click", function(ev) {
+    const dataItem = ev.target.dataItem;
+    if (dataItem && dataItem.dataContext.users) {
+      showUserDetails(dataItem.dataContext);
+    }
+  });
+
+  // Set bar chart data
+  barSeries.data.setAll(scope.main);
+  yAxis.data.setAll(scope.main);
+
+  // Add cursor for better interactivity
+  const cursor = barChart.set("cursor", am5xy.XYCursor.new(root, {
+    behavior: "none",
+    xAxis: xAxis,
+    yAxis: yAxis
+  }));
+  cursor.lineY.set("visible", false);
+
+  // Function to show user details (placeholder for modal or detailed view)
+  function showUserDetails(regionData) {
+    // Create a detailed tooltip or modal showing user information
+    const usersList = regionData.users.map(user => 
+      `User ID: ${user.user_id} (Created: ${user.records_created}, Updated: ${user.records_updated})`
+    ).join('\n');
+    
+    // For now, using alert - in production, this would be a modal or detailed panel
+    alert(`${regionData.category} Region Details:\n\nTotal Users: ${regionData.total_users}\n\nUsers:\n${usersList}`);
+  }
+
+  // Add overall statistics at the bottom
+  const statsContainer = root.container.children.push(am5.Container.new(root, {
+    layout: root.horizontalLayout,
+    width: am5.percent(100),
+    height: 50,
+    y: am5.percent(95),
+    centerX: am5.percent(50),
+    x: am5.percent(50)
+  }));
+
+  // Calculate total users
+  const totalUsers = scope.main.reduce((sum, region) => sum + region.value, 0);
+  const totalRegions = scope.main.length;
+
+  statsContainer.children.push(am5.Label.new(root, {
+    text: `Total: ${totalUsers} users across ${totalRegions} regions`,
+    fontSize: 14,
+    fontWeight: "bold",
+    textAlign: "center",
+    fill: am5.color("#666666")
+  }));
+
+  // Add animation on load
+  pieSeries.appear(1000, 100);
+  barSeries.appear(1000, 100);
+
+  return root;
+}
+</client_script>

@@ -1,0 +1,75 @@
+<user_request>
+show workordes statuses for last month as a pie graph
+
+</user_request>
+
+<description>
+This report generates a pie chart visualization showing the distribution of work order statuses for the last month. It provides insights into the current state of work orders by categorizing them into standard status types: New, Open, In Progress, Resolved, and Closed.
+
+The script:
+1. Calculates the date range for the last month from the current date
+2. Fetches all work orders created within that timeframe
+3. Counts the occurrences of each status type
+4. Returns formatted data suitable for pie chart visualization
+
+The output includes:
+- Category: The status name (New, Open, In Progress, Resolved, Closed)
+- Value: The count of work orders for each status
+
+This visualization helps identify workflow bottlenecks, monitor completion rates, and assess the overall health of work order processing.
+</description>
+
+<server_script>
+async function(scope) {
+  // This script generates a pie chart data of Work Order (Demo) statuses for the last month
+
+  try {
+    // Get the current date and calculate the date one month ago
+    const now = new Date();
+    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+
+    // Define all possible status keys for the model
+    const statusKeys = ['New', 'Open', 'In Progress', 'Resolved', 'Closed'];
+
+    // Fetch all work orders created in the last month
+    const records = await p.iterMap(
+      scope
+        .find({
+          created_at: { $gte: lastMonth }
+        })
+        .fields(['id', 'status', 'created_at'])
+        .raw(),
+      rec => rec
+    );
+
+    // Count the number of work orders per status
+    const statusCounts = {};
+    statusKeys.forEach(status => {
+      statusCounts[status] = 0;
+    });
+
+    records.forEach(rec => {
+      if (statusCounts.hasOwnProperty(rec.status)) {
+        statusCounts[rec.status]++;
+      }
+    });
+
+    // Prepare pie chart data array
+    const pieData = statusKeys.map(status => ({
+      category: status,
+      value: statusCounts[status]
+    }));
+
+    return {
+      main: pieData
+    };
+  } catch (error) {
+    // Error handling: return empty array if something goes wrong
+    return {
+      main: [],
+      error: error.message
+    };
+  }
+}
+
+</server_script>

@@ -53,8 +53,8 @@ class RagManager:
         model_k = int(k * 0.5)
         js_api_k = int(k * 1)
         # report_k = int(k * 0.15)
-        report_data_k = 1 #int(k * 0.15)
-        chart_k = int(k * 0.15)
+        report_data_k = int(k * 0.2)
+        chart_k = int(k * 0.2)
 
         # Search models
         model_results = self.metadata_indexer.search(query, k=model_k)

@@ -1,0 +1,127 @@
+<user_request>
+show workordes statuses for last month as a pie graph
+</user_request>
+
+<description>
+This chart displays work order statuses for the last month in an interactive pie chart format. The visualization provides a clear overview of the distribution of work orders across different statuses, helping users quickly identify the most common statuses and their relative proportions.
+
+The client script creates a modern donut-style pie chart using the amCharts 5 library. Key features include:
+
+- **Data validation**: Checks for valid data and displays a friendly message if no work orders are found
+- **Interactive donut chart**: Uses a 40% inner radius for a modern appearance
+- **Legend**: Displays status categories with corresponding values below the chart
+- **Tooltips**: Shows detailed information on hover with clickable links to filtered work order views
+- **Animations**: Smooth entrance animations and hover effects that slightly scale slices
+- **Responsive design**: Automatically adapts to different screen sizes
+- **Accessibility**: Includes proper chart title and handles empty states gracefully
+- **Visual enhancements**: Custom styling, shadow effects on hover, and hidden amCharts branding
+
+The chart expects data in the format `[{category: "status_name", value: count}, ...]` and automatically filters out any entries with zero values to maintain a clean visualization.
+</description>
+
+<client_script>
+function(chartdiv, scope) {
+  // Create root element and set animated theme
+  const root = am5.Root.new(chartdiv);
+  root.setThemes([am5themes_Animated.new(root)]);
+
+  // Handle empty data gracefully
+  const data = Array.isArray(scope.main) ? scope.main.filter(d => d.value > 0) : [];
+  if (!data.length) {
+    // Show a friendly message if there's no data
+    let label = root.container.children.push(
+      am5.Label.new(root, {
+        text: "No work orders found for the last month.",
+        fontSize: 20,
+        x: am5.percent(50),
+        y: am5.percent(50),
+        centerX: am5.percent(50),
+        centerY: am5.percent(50),
+        fill: am5.color(0x888888)
+      })
+    );
+    return root;
+  }
+
+  // Create the PieChart
+  const chart = root.container.children.push(
+    am5percent.PieChart.new(root, {
+      layout: root.verticalLayout,
+      innerRadius: am5.percent(40), // Donut style for modern look
+      width: am5.percent(100),
+      height: am5.percent(100),
+      responsive: true
+    })
+  );
+
+  // Create PieSeries
+  const series = chart.series.push(
+    am5percent.PieSeries.new(root, {
+      name: "Work Order Statuses",
+      valueField: "value",
+      categoryField: "category",
+      legendLabelText: "{category}",
+      legendValueText: "{value}",
+      alignLabels: true,
+      calculateAggregates: true
+    })
+  );
+
+  // Set data
+  series.data.setAll(data);
+
+  // Animate in
+  series.appear(1000, 100);
+
+  // Add legend
+  const legend = chart.children.push(
+    am5.Legend.new(root, {
+      centerX: am5.percent(50),
+      x: am5.percent(50),
+      marginTop: 20,
+      marginBottom: 10,
+      width: am5.percent(100),
+      layout: root.horizontalLayout,
+      useDefaultMarker: true
+    })
+  );
+  legend.data.setAll(series.dataItems);
+
+  // Add tooltips with clickable links to filtered work orders (if relevant)
+  series.slices.template.setAll({
+    tooltipHTML:
+      `<div style="text-align:center;">
+        <strong>{category}</strong><br>
+        {value} work orders<br>
+        <a href="javascript:void(0);" style="color:#1976d2;text-decoration:underline;" onclick="window.open('/workorders?status={category}','_blank')">View {category}</a>
+      </div>`,
+    cursorOverStyle: "pointer"
+  });
+
+  // Optional: Add hover animation
+  series.slices.template.states.create("hover", {
+    scale: 1.05,
+    shadowColor: am5.color(0x000000),
+    shadowBlur: 10
+  });
+
+  // Responsive resizing
+  root._logo?.hide(); // Hide amCharts logo if present
+
+  // Accessibility: Add chart title
+  chart.children.unshift(
+    am5.Label.new(root, {
+      text: "Work Order Statuses (Last Month)",
+      fontSize: 22,
+      fontWeight: "bold",
+      x: am5.percent(50),
+      centerX: am5.percent(50),
+      paddingBottom: 10,
+      fill: am5.color(0x333333)
+    })
+  );
+
+  // Return root for cleanup
+  return root;
+}
+</client_script>
