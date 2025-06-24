@@ -32,7 +32,7 @@ class LLMClaudeProcessor:
             print(f"Error initializing Claude client: {str(e)}")
             raise e
 
-    def generate_response(self, prompt: str, max_tokens: int = 512, temperature: float = 0.2) -> str:
+    def generate_response(self, prompt: str, max_tokens: int = 4096, temperature: float = 0.2) -> str:
         """Generate a response using Claude API"""
         if not self.client:
             self.initialize_model()
