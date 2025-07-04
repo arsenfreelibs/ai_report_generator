@@ -29,9 +29,11 @@ async function(scope) {
       }
     );
 
+    //Get user model
+    const userModel = (await p.getModel('user')).setOptions({ check_permission: { all: false } });
     // Get all records from the current scope model to extract user references
     const records = await p.iterMap(
-      scope.find({}).fields(['id', 'created_by', 'updated_by', 'created_at']).raw(),
+      userModel.find({}).fields(['id', 'created_by', 'updated_by', 'created_at']).raw(),
       record => record
     );
 

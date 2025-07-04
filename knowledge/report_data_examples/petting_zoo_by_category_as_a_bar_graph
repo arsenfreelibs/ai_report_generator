@@ -1,0 +1,83 @@
+<user_request>
+show Petting Zoo by category as a bar graph
+</user_request>
+
+<description>
+This data visualization displays the distribution of animals in a petting zoo organized by animal categories using a bar chart format. The server script processes petting zoo records to count animals across five predefined categories and presents the data in a structured format suitable for bar chart rendering.
+
+**Data Processing:**
+- Fetches all petting zoo records from the 'petting_zoo' model
+- Extracts animal information including ID, category, and name fields
+- Categorizes animals into five groups: amphibians, birds, reptiles, mammals, and others
+- Counts the number of animals in each category, initializing all categories to zero to ensure complete data representation
+
+**Data Structure:**
+The script returns an array of objects, each containing:
+- `category`: The animal category name (amphibians, birds, reptiles, mammals, others)
+- `value`: The count of animals in that specific category
+
+**Key Features:**
+- Comprehensive category coverage ensuring all animal types are represented
+- Zero-initialization prevents missing categories in the visualization
+- Error handling with graceful fallback to empty array and error message capture
+- Raw data processing for optimal performance
+- Permission checking disabled for broader data access
+
+**Expected Output:**
+A bar chart showing the relative distribution of petting zoo animals across categories, allowing viewers to quickly identify which animal types are most prevalent in the facility. This visualization is particularly useful for:
+- Understanding animal diversity in the petting zoo
+- Identifying the most common animal categories
+- Planning animal care resources and staffing
+- Educational purposes showing biodiversity representation
+
+The data structure is optimized for standard charting libraries that expect category-value pairs for bar chart generation.
+</description>
+
+<server_script>
+async function(scope) {
+  try {
+    //Get Petting Zoo model
+    const pettingZoo = (await p.getModel('petting_zoo')).setOptions({ check_permission: { all: false } });
+
+    // Define all possible category keys for the Petting Zoo model
+    const categoryKeys = ['amphibians', 'birds', 'reptiles', 'mammals', 'others'];
+
+    // Fetch all petting zoo records
+    const records = await p.iterMap(
+      pettingZoo
+        .find({})
+        .fields(['id', 'category', 'name'])
+        .raw(),
+      rec => rec
+    );
+
+    // Count the number of animals per category
+    const categoryCounts = {};
+    categoryKeys.forEach(category => {
+      categoryCounts[category] = 0;
+    });
+
+    records.forEach(rec => {
+      if (categoryCounts.hasOwnProperty(rec.category)) {
+        categoryCounts[rec.category]++;
+      }
+    });
+
+    // Prepare bar chart data array
+    const barData = categoryKeys.map(category => ({
+      category: category,
+      value: categoryCounts[category]
+    }));
+
+    return {
+      main: barData
+    };
+  } catch (error) {
+    // Error handling: return empty array if something goes wrong
+    return {
+      main: [],
+      error: error.message
+    };
+  }
+}
+</server_script>

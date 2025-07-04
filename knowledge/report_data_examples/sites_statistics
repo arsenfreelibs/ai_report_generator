@@ -1,25 +1,25 @@
 <user_request>
-Создай визуальный отчёт с двумя карточками: одна отображает количество номинальных сайтов (candidate_site_id IS NULL), другая — количество завершённых кандидатских сайтов (candidate_site_id IS NOT NULL и status NOT IN ('Inactive','New','Decommissioned')), каждая карточка кликабельна и ведёт по соответствующей ссылке.
+Create a visual report with two cards: one displays the count of nominal sites (candidate_site_id IS NULL), the other displays the count of completed candidate sites (candidate_site_id IS NOT NULL and status NOT IN ('Inactive','New','Decommissioned')), each card is clickable and leads to the corresponding link.
 </user_request>
 
 <description>
-Отчет реализует подсчет статистики по сущности Site с двумя основными метриками: количество номинальных сайтов и количество завершенных кандидатских сайтов.
+The report implements statistics counting for the Site entity with two main metrics: number of nominal sites and number of completed candidate sites.
 
-Модель: site
-Используемые поля:
-candidate_site_id (тип: integer / reference):
-Используется для определения номинальности: IS NULL → сайт номинальный.
-IS NOT NULL → сайт является кандидатом.
-status (тип: string):
-Для кандидатов фильтрация по статусу: включает только 'active', 'Temporary', 'Relocated'.
+Model: site
+Used fields:
+candidate_site_id (type: integer / reference):
+Used to determine nominality: IS NULL → site is nominal.
+IS NOT NULL → site is a candidate.
+status (type: string):
+For candidates, filtering by status: includes only 'active', 'Temporary', 'Relocated'.
 
-Серверная логика (Node.js, async function):
-Получает модель site с отключенной проверкой прав (check_permission: { all: false }).
-Выполняет два запроса:
-siteModel.find({ candidate_site_id: 'ISNULL' }).count() — количество номинальных сайтов.
-siteModel.find({ candidate_site_id: 'ISNOTNULL', status: ['active', 'Temporary', 'Relocated'] }).count() — количество завершённых кандидатских сайтов.
+Server logic (Node.js, async function):
+Gets the site model with disabled permission checking (check_permission: { all: false }).
+Executes two queries:
+siteModel.find({ candidate_site_id: 'ISNULL' }).count() — count of nominal sites.
+siteModel.find({ candidate_site_id: 'ISNOTNULL', status: ['active', 'Temporary', 'Relocated'] }).count() — count of completed candidate sites.
 
-Возвращает структуру:
+Returns structure:
 {
   main: {
     nominalSitesCount,
@@ -32,10 +32,10 @@ siteModel.find({ candidate_site_id: 'ISNOTNULL', status: ['active', 'Temporary',
 async function(scope) {
   const siteModel = (await p.getModel('site')).setOptions({ check_permission: { all: false } });
 
-  // Подсчет количества номинальных сайтов: Candidate Site ID пустой
+  // Count of nominal sites: Candidate Site ID is empty
   const nominalSitesCount = await siteModel.find({ candidate_site_id: 'ISNULL' }).count();
 
-  // Подсчет количества завершенных кандидатских сайтов
+  // Count of completed candidate sites
   const completedCandidateSitesCount = await siteModel
     .find({
       candidate_site_id: 'ISNOTNULL',

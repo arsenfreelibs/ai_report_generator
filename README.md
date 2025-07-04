@@ -405,3 +405,22 @@ If you encounter errors:
    # Check memory usage
    free -h
    ```
+
+**Examples of call API:**
+
+curl --location --request POST '69.30.85.10:22065/generate' \
+--header 'Content-Type: application/json' \
+--data-raw '{"query": "show user by region"}'
+
+curl --location --request POST '69.30.85.10:22065/generate' \
+--header 'Content-Type: application/json' \
+--data-raw '{"query": "show open workordes per day"}'
+
+curl --location --request POST '69.30.85.10:22065/generate' \
+--header 'Content-Type: application/json' \
+--data-raw '{"query": "show workordes statuses for last month as a pie graph"}'
+
+curl --location --request POST '69.30.85.10:22065/generate' \
+--header 'Content-Type: application/json' \
+--data-raw '{"query": "show Petting Zoo by category as a pie graph"}'
+

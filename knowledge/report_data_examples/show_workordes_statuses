@@ -31,9 +31,11 @@ async function(scope) {
     // Define all possible status keys for the model
     const statusKeys = ['New', 'Open', 'In Progress', 'Resolved', 'Closed'];
 
+    // Get the Work Order (Demo) model
+    const workOrderModel = await p.getModel('demo_video_streamline_2_0');
     // Fetch all work orders created in the last month
     const records = await p.iterMap(
-      scope
+      workOrderModel
         .find({
           created_at: { $gte: lastMonth }
         })
