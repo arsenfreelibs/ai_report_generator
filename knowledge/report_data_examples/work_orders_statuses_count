@@ -1,0 +1,57 @@
+<user_request>
+for work bored show rectangles one for each status in rectangles must be count of work orders with corresponding statuses
+</user_request>
+
+<description>
+Server script that fetches work order data and returns the count of work orders grouped by status. Returns an array of objects with status name, count, and label for each work order status (New, Open, In Progress, Resolved, Closed). Used to generate data for rectangle/column charts showing work order distribution by status.
+</description>
+
+<server_script>
+async function(scope) {
+  try {
+    // Get the Work Order (Demo) model
+    const workOrderModel = await p.getModel('demo_video_streamline_2_0');
+    
+    // Define all possible status keys for the Work Order model
+    const statusKeys = ['New', 'Open', 'In Progress', 'Resolved', 'Closed'];
+    
+    // Fetch all work order records
+    const records = await p.iterMap(
+      workOrderModel
+        .find({})
+        .fields(['id', 'status'])
+        .raw(),
+      rec => rec
+    );
+    
+    // Count the number of work orders per status
+    const statusCounts = {};
+    statusKeys.forEach(status => {
+      statusCounts[status] = 0;
+    });
+    
+    records.forEach(rec => {
+      if (statusCounts.hasOwnProperty(rec.status)) {
+        statusCounts[rec.status]++;
+      }
+    });
+    
+    // Prepare rectangle data array - one rectangle for each status
+    const rectangleData = statusKeys.map(status => ({
+      status: status,
+      count: statusCounts[status],
+      label: `${status}: ${statusCounts[status]}`
+    }));
+    
+    return {
+      main: rectangleData
+    };
+  } catch (error) {
+    // Error handling: return empty array if something goes wrong
+    return {
+      main: [],
+      error: error.message
+    };
+  }
+}
+</server_script>

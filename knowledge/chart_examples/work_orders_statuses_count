@@ -1,0 +1,166 @@
+<user_request>
+for work bored show rectangles one for each status in rectangles must be count of work orders with corresponding statuses
+</user_request>
+
+<description>
+A column chart displaying work order counts grouped by status. Each status is represented as a colored rectangle (column) with the height corresponding to the number of work orders in that status. Includes status labels, count values on top of each column, hover effects, and a legend for easy identification of different work order statuses.
+</description>
+
+<client_script>
+function(chartdiv, scope) {
+  const root = am5.Root.new(chartdiv);
+  root.setThemes([am5themes_Animated.new(root)]);
+
+  // Create XY chart for rectangle visualization
+  const chart = root.container.children.push(am5xy.XYChart.new(root, {
+    panX: false,
+    panY: false,
+    wheelX: "none",
+    wheelY: "none",
+    paddingLeft: 0,
+    paddingRight: 0,
+    paddingTop: 20,
+    paddingBottom: 20
+  }));
+
+  // Create X axis (category axis for status)
+  const xAxis = chart.xAxes.push(am5xy.CategoryAxis.new(root, {
+    categoryField: "status",
+    renderer: am5xy.AxisRendererX.new(root, {
+      minGridDistance: 30,
+      cellStartLocation: 0.1,
+      cellEndLocation: 0.9
+    }),
+    tooltip: am5.Tooltip.new(root, {})
+  }));
+
+  // Create Y axis (value axis for count)
+  const yAxis = chart.yAxes.push(am5xy.ValueAxis.new(root, {
+    min: 0,
+    renderer: am5xy.AxisRendererY.new(root, {
+      strokeDasharray: [1, 3]
+    })
+  }));
+
+  // Create column series for rectangles
+  const series = chart.series.push(am5xy.ColumnSeries.new(root, {
+    name: "Work Order Status",
+    xAxis: xAxis,
+    yAxis: yAxis,
+    valueYField: "count",
+    categoryXField: "status",
+    tooltip: am5.Tooltip.new(root, {
+      labelText: "{categoryX}: {valueY} work orders"
+    })
+  }));
+
+  // Configure column appearance
+  series.columns.template.setAll({
+    cornerRadiusTL: 5,
+    cornerRadiusTR: 5,
+    strokeOpacity: 0,
+    width: am5.percent(80)
+  });
+
+  // Add color scheme for different statuses
+  series.columns.template.adapters.add("fill", function(fill, target) {
+    const dataItem = target.dataItem;
+    if (dataItem) {
+      const status = dataItem.get("categoryX");
+      switch(status) {
+        case "New": return am5.color("#4CAF50"); // Green
+        case "Open": return am5.color("#2196F3"); // Blue
+        case "In Progress": return am5.color("#FF9800"); // Orange
+        case "Resolved": return am5.color("#9C27B0"); // Purple
+        case "Closed": return am5.color("#607D8B"); // Blue Grey
+        default: return am5.color("#757575"); // Grey
+      }
+    }
+    return fill;
+  });
+
+  // Add data labels on top of rectangles
+  series.bullets.push(function() {
+    return am5.Bullet.new(root, {
+      locationY: 0,
+      sprite: am5.Label.new(root, {
+        text: "{valueY}",
+        fill: root.interfaceColors.get("alternativeText"),
+        centerY: am5.p100,
+        centerX: am5.p50,
+        populateText: true,
+        fontSize: "12px",
+        fontWeight: "bold"
+      })
+    });
+  });
+
+  // Add hover effects
+  series.columns.template.states.create("hover", {
+    fillOpacity: 0.8,
+    strokeOpacity: 1,
+    stroke: am5.color("#ffffff"),
+    strokeWidth: 2
+  });
+
+  // Add cursor for better interactivity
+  const cursor = chart.set("cursor", am5xy.XYCursor.new(root, {
+    behavior: "none",
+    xAxis: xAxis,
+    yAxis: yAxis
+  }));
+  cursor.lineY.set("visible", false);
+
+  // Add legend
+  const legend = chart.children.push(am5.Legend.new(root, {
+    centerX: am5.p50,
+    x: am5.p50,
+    marginTop: 15,
+    marginBottom: 5
+  }));
+
+  // Handle empty data gracefully
+  if (!scope.main || scope.main.length === 0) {
+    // Show empty state message
+    const emptyLabel = chart.plotContainer.children.push(am5.Label.new(root, {
+      text: "No work order data available",
+      fontSize: 16,
+      fontWeight: "400",
+      textAlign: "center",
+      x: am5.p50,
+      y: am5.p50,
+      centerX: am5.p50,
+      centerY: am5.p50,
+      fill: am5.color("#999999")
+    }));
+    
+    // Set empty data
+    xAxis.data.setAll([]);
+    series.data.setAll([]);
+  } else {
+    // Set data from server
+    xAxis.data.setAll(scope.main);
+    series.data.setAll(scope.main);
+    
+    // Add legend data
+    legend.data.setAll(series.dataItems);
+  }
+
+  // Add chart title
+  const title = chart.children.unshift(am5.Label.new(root, {
+    text: "Work Order Status Distribution",
+    fontSize: 18,
+    fontWeight: "bold",
+    textAlign: "center",
+    x: am5.p50,
+    centerX: am5.p50,
+    paddingTop: 0,
+    paddingBottom: 10
+  }));
+
+  // Make chart responsive
+  chart.appear(1000, 100);
+
+  return root;
+}
+</client_script>

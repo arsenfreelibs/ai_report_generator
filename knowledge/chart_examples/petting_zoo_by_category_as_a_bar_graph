@@ -1,0 +1,167 @@
+<user_request>
+show Petting Zoo by category as a bar graph
+</user_request>
+
+<description>
+A horizontal bar chart displaying petting zoo animals grouped by category. Features include animated bars with gradient fills, data labels, hover effects, and automatic scrolling for large datasets. The chart expects data with 'category' and 'value' fields and handles empty data gracefully.
+</description>
+
+<client_script>
+function(chartdiv, scope) {
+  // Create root element
+  const root = am5.Root.new(chartdiv);
+  
+  // Set themes
+  root.setThemes([
+    am5themes_Animated.new(root)
+  ]);
+
+  // Create chart
+  const chart = root.container.children.push(am5xy.XYChart.new(root, {
+    panX: false,
+    panY: false,
+    wheelX: "panX",
+    wheelY: "zoomX",
+    layout: root.verticalLayout
+  }));
+
+  // Add title
+  chart.children.unshift(am5.Label.new(root, {
+    text: "Petting Zoo Animals by Category",
+    fontSize: 20,
+    fontWeight: "500",
+    textAlign: "center",
+    x: am5.percent(50),
+    centerX: am5.percent(50),
+    paddingTop: 0,
+    paddingBottom: 20
+  }));
+
+  // Create axes
+  // Create Y-axis (category axis)
+  const yAxis = chart.yAxes.push(am5xy.CategoryAxis.new(root, {
+    categoryField: "category",
+    renderer: am5xy.AxisRendererY.new(root, {
+      inversed: true,
+      cellStartLocation: 0.1,
+      cellEndLocation: 0.9
+    })
+  }));
+
+  // Style Y-axis labels
+  yAxis.get("renderer").labels.template.setAll({
+    fontSize: 12,
+    fontWeight: "400"
+  });
+
+  // Create X-axis (value axis)
+  const xAxis = chart.xAxes.push(am5xy.ValueAxis.new(root, {
+    min: 0,
+    renderer: am5xy.AxisRendererX.new(root, {
+      strokeOpacity: 0.1
+    })
+  }));
+
+  // Style X-axis labels
+  xAxis.get("renderer").labels.template.setAll({
+    fontSize: 12
+  });
+
+  // Create series
+  const series = chart.series.push(am5xy.ColumnSeries.new(root, {
+    name: "Animals",
+    xAxis: xAxis,
+    yAxis: yAxis,
+    valueXField: "value",
+    categoryYField: "category",
+    tooltip: am5.Tooltip.new(root, {
+      pointerOrientation: "left",
+      labelText: "{categoryY}: {valueX} animals"
+    })
+  }));
+
+  // Style the columns
+  series.columns.template.setAll({
+    cornerRadiusTR: 5,
+    cornerRadiusBR: 5,
+    strokeOpacity: 0,
+    fillGradient: am5.LinearGradient.new(root, {
+      stops: [
+        { color: am5.color("#3b82f6") },
+        { color: am5.color("#1d4ed8") }
+      ]
+    })
+  });
+
+  // Add hover effects
+  series.columns.template.states.create("hover", {
+    fillGradient: am5.LinearGradient.new(root, {
+      stops: [
+        { color: am5.color("#60a5fa") },
+        { color: am5.color("#2563eb") }
+      ]
+    }),
+    scale: 1.02
+  });
+
+  // Add data labels on bars
+  series.bullets.push(function() {
+    return am5.Bullet.new(root, {
+      locationX: 1,
+      sprite: am5.Label.new(root, {
+        text: "{valueX}",
+        fill: root.interfaceColors.get("alternativeText"),
+        centerY: am5.percent(50),
+        centerX: am5.percent(0),
+        paddingLeft: 15,
+        fontSize: 12,
+        fontWeight: "500"
+      })
+    });
+  });
+
+  // Handle empty data gracefully
+  if (!scope.main || scope.main.length === 0) {
+    chart.children.push(am5.Label.new(root, {
+      text: "No data available",
+      fontSize: 16,
+      textAlign: "center",
+      x: am5.percent(50),
+      y: am5.percent(50),
+      centerX: am5.percent(50),
+      centerY: am5.percent(50)
+    }));
+    return root;
+  }
+
+  // Capitalize category names for better display
+  const processedData = scope.main.map(item => ({
+    ...item,
+    category: item.category.charAt(0).toUpperCase() + item.category.slice(1)
+  }));
+
+  // Set data
+  yAxis.data.setAll(processedData);
+  series.data.setAll(processedData);
+
+  // Add cursor for better interactivity
+  chart.set("cursor", am5xy.XYCursor.new(root, {
+    behavior: "none",
+    xAxis: xAxis,
+    yAxis: yAxis
+  }));
+
+  // Add scrollbar if needed (for many categories)
+  if (processedData.length > 8) {
+    chart.set("scrollbarY", am5.Scrollbar.new(root, {
+      orientation: "vertical"
+    }));
+  }
+
+  // Make stuff animate on load
+  series.appear(1000);
+  chart.appear(1000, 100);
+
+  return root;
+}
+</client_script>
