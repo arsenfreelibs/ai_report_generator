@@ -56,6 +56,8 @@ class LLMProcessor:
             formatted_prompt = f"<s>[INST] {prompt} [/INST]"
         elif "qwen" in self.model_path.lower():
             formatted_prompt = f"<|im_start|>user\n{prompt}<|im_end|>\n<|im_start|>assistant\n"
+        elif "deepseek" in self.model_path.lower():
+            formatted_prompt = f"### Instruction:\n{prompt}\n\n### Response:\n"
         else:
             formatted_prompt = prompt
 
@@ -76,6 +78,6 @@ class LLMProcessor:
         response = response.split(prompt)[-1].strip()
 
         # Clean up any model-specific formatting
-        response = response.replace("<|im_end|>", "").replace("[/INST]", "").strip()
+        response = response.replace("<|im_end|>", "").replace("[/INST]", "").replace("### Response:", "").strip()
 
         return response

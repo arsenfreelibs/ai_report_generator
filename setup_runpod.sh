@@ -59,4 +59,4 @@ python -c "import torch; print(f'PyTorch version: {torch.__version__}'); print(f
 
 echo "Setup complete. Start api_server.py"
 
-MODEL_KEY="codellama" python api_server.py
+MODEL_KEY="deepseek" python api_server.py
