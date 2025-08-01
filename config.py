@@ -7,7 +7,8 @@ MODEL_OPTIONS = {
     "mixtral": "mistralai/Mixtral-8x7B-Instruct-v0.1",
     "qwen": "Qwen/Qwen-14B-Chat",
     "codellama_small": "codellama/CodeLlama-7b-Instruct-hf",
-    "deepseek": "deepseek-ai/deepseek-coder-33b-instruct"
+    "deepseek": "deepseek-ai/deepseek-coder-33b-instruct",
+    "deepseek_small": "deepseek-ai/deepseek-coder-6.7b-instruct"
 }
 
 # OpenAI model options
