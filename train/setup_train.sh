@@ -265,7 +265,9 @@ if [ $? -eq 0 ]; then
     echo ""
     print_status "Next steps:"
     echo "  1. Review the trained model in colab/models/"
-    echo "  2. Test the model with your own prompts"
+    echo "  2. Test the model with your own prompts using:"
+    echo "     ./test_model.sh --latest --interactive"
+    echo "     or: python3 test_model.py --latest"
     echo "  3. Deploy the model for code generation"
     
     if [[ ! $UPLOAD_CHOICE =~ ^[Yy]$ ]]; then
